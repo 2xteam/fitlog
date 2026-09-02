@@ -5,7 +5,7 @@ export function SiteFooter() {
   return (
     <footer style={wrapStyle}>
       <p style={descStyle}>
-        사진 한 장으로 단어를 뽑아 나만의 단어장을 만드는 학습 도구입니다.
+        인바디 결과지를 찍어 기록하고, 몸의 변화를 한눈에 보는 기록 도구입니다.
       </p>
       <p style={lineStyle}>
         <a

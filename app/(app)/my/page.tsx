@@ -45,6 +45,21 @@ export default function MyPage() {
 
   const save = async () => {
     if (!session) return;
+
+    // 어떤 칸이 비었는지 분명히 알려준다 (플레이스홀더를 값으로 오해하기 쉽다)
+    if (!heightCm.trim()) {
+      setMsg("키를 입력해 주세요.");
+      return;
+    }
+    if (!gender) {
+      setMsg("성별을 선택해 주세요.");
+      return;
+    }
+    if (!birthYear.trim()) {
+      setMsg("출생연도를 입력해 주세요.");
+      return;
+    }
+
     setBusy(true);
     setMsg(null);
     setDone(false);
@@ -115,7 +130,12 @@ export default function MyPage() {
                 step="0.1"
                 value={heightCm}
                 onChange={(e) => setHeightCm(e.target.value)}
-                placeholder="179"
+                placeholder="예) 179"
+                style={
+                  msg && !heightCm.trim()
+                    ? { borderColor: "var(--danger)", borderWidth: 2 }
+                    : undefined
+                }
               />
             </div>
 
@@ -148,7 +168,12 @@ export default function MyPage() {
                 max={thisYear}
                 value={birthYear}
                 onChange={(e) => setBirthYear(e.target.value)}
-                placeholder="1988"
+                placeholder="예) 1986"
+                style={
+                  msg && !birthYear.trim()
+                    ? { borderColor: "var(--danger)", borderWidth: 2 }
+                    : undefined
+                }
               />
               {age !== null ? (
                 <p className="field-hint">현재 만 {age}세로 계산돼요.</p>
