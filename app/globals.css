@@ -830,10 +830,12 @@ a[style*="var(--bg-card)"]:hover {
 
 .headline {
   margin: 0;
-  font-size: clamp(20px, 4.4vw, 26px);
-  font-weight: 800;
-  line-height: 1.4;
-  letter-spacing: -0.03em;
+  /* 결쩜사의 큰 헤드라인은 명조(Gowun Batang) 700이다 */
+  font-family: "Gowun Batang", serif;
+  font-size: clamp(21px, 4.4vw, 28px);
+  font-weight: 700;
+  line-height: 1.42;
+  letter-spacing: -0.8px;
   color: var(--text-primary);
   word-break: keep-all;
 }
@@ -983,4 +985,112 @@ a[style*="var(--bg-card)"]:hover {
   font-size: 9px;
   font-weight: 900;
   letter-spacing: 2px;
+}
+
+
+/* ────────────────────────────────────────────────────────────
+ * 상단 네비 — 주 기능(Home · Inbody · History)만 노출하고
+ * 부가 기능(My · Notice · Q&A · Logout)은 "더보기"로 접는다.
+ * 모바일에서는 햄버거 메뉴 안에서 얇은 구분선 아래로 내려간다.
+ * ──────────────────────────────────────────────────────────── */
+
+.topnav-more-wrap {
+  position: relative;
+}
+
+.topnav-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.topnav-more-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 148px;
+  padding: 6px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  box-shadow: 0 18px 40px rgba(37, 13, 62, 0.18);
+  z-index: 60;
+  display: grid;
+  gap: 2px;
+}
+
+.topnav-more-item {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 9px;
+  background: none;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.topnav-more-item:hover {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+
+.topnav-more-item--danger {
+  color: var(--text-muted);
+}
+
+.topnav-more-item--danger:hover {
+  background: var(--danger-subtle);
+  color: var(--danger);
+}
+
+/* 모바일 메뉴에서 부가 기능은 구분선 아래로 */
+/* `:first-of-type`는 같은 태그의 첫 형제(=Home)를 가리켜 쓸 수 없다.
+   주 기능 다음에 오는 첫 부가 기능만 골라 구분선을 준다. */
+.topnav-menu-link[data-sub="false"] + .topnav-menu-link[data-sub="true"] {
+  margin-top: 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.topnav-menu-link[data-sub="true"] {
+  color: var(--text-secondary);
+}
+
+/* ── myjane 워드마크 (푸터) ──
+ * `my`는 배경에 맞춰 본문 색을 쓰고, `jane`은 앱 테마와 무관하게
+ * myjane 브랜드 보라로 고정한다. 흰 배경에서는 my가 검정,
+ * 어두운 배경에서는 my가 흰색으로 보인다. */
+.myjane-mark {
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  color: var(--text-primary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.myjane-mark:hover {
+  text-decoration: underline;
+}
+
+.myjane-mark > span {
+  color: #a78bfa;
+}
+
+[data-theme="light"] .myjane-mark > span {
+  color: #7c3aed;
+}
+
+/* custom 테마는 배경을 미리 알 수 없어 양쪽에서 읽히는 중간 톤을 쓴다 */
+[data-theme="custom"] .myjane-mark > span {
+  color: #8b5cf6;
 }

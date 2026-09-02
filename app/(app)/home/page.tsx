@@ -58,8 +58,8 @@ export default function HomePage() {
           <Link href="/measurements/new" className="btn btn--primary">
             결과지 등록 <span aria-hidden="true">→</span>
           </Link>
-          <Link href="/weight" className="btn btn--ghost">
-            체중 기록
+          <Link href="/measurements/new" className="btn btn--ghost">
+            체중만 기록
           </Link>
         </div>
       </Sheet>
@@ -106,9 +106,9 @@ export default function HomePage() {
       <Sheet tone="tint" eyebrow="MENU" headline="무엇을 해볼까요">
         <div style={{ marginTop: 16, display: "grid", gap: 10 }}>
           {[
-            { href: "/measurements", label: "인바디 기록 전체 보기" },
-            { href: "/weight", label: "오늘 체중 기록하기" },
-            { href: "/charts", label: "추이 그래프 보기" },
+            { href: "/measurements", label: "Inbody 기록 전체 보기" },
+            { href: "/measurements/new", label: "결과지 등록 · 체중만 기록" },
+            { href: "/charts", label: "History 그래프 보기" },
             { href: "/my", label: "내 프로필" },
           ].map((m) => (
             <Link

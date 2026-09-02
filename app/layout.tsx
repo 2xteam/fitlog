@@ -89,7 +89,20 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <head>
-        {/* Pretendard — 결쩜사와 동일한 본문 서체 */}
+        {/*
+          결쩜사와 동일한 서체 조합.
+          본문·라벨은 Pretendard, 큰 헤드라인은 Gowun Batang(명조) 700.
+        */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap"
+        />
         <link
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"

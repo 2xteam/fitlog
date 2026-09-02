@@ -6,14 +6,18 @@ import { useEffect, useRef, useState } from "react";
 import { AppIcon } from "@/components/AppIcon";
 import { clearSession } from "@/lib/session";
 
+/** 앱의 주된 기능 — 데스크톱 상단에 그대로 노출 */
 const nav = [
   { href: "/home", label: "Home" },
-  { href: "/measurements", label: "인바디" },
-  { href: "/weight", label: "체중" },
-  { href: "/charts", label: "추이" },
+  { href: "/measurements", label: "Inbody" },
+  { href: "/charts", label: "History" },
+];
+
+/** 부가 기능 — 데스크톱은 "더보기" 안에, 모바일은 햄버거 메뉴 아래쪽에 */
+const subNav = [
+  { href: "/my", label: "My" },
   { href: "/notice", label: "Notice" },
   { href: "/inquiries", label: "Q&A" },
-  { href: "/my", label: "My" },
 ];
 
 const otherApps = [
@@ -26,7 +30,9 @@ export function TopNav() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [appMenu, setAppMenu] = useState(false);
+  const [moreMenu, setMoreMenu] = useState(false);
   const appMenuRef = useRef<HTMLDivElement>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
 
   const logout = () => {
     clearSession();
@@ -43,6 +49,23 @@ export function TopNav() {
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, [appMenu]);
+
+  useEffect(() => {
+    if (!moreMenu) return;
+    const onClick = (e: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setMoreMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [moreMenu]);
+
+  // 경로가 바뀌면 열린 메뉴를 닫는다
+  useEffect(() => {
+    setMoreMenu(false);
+    setAppMenu(false);
+  }, [pathname]);
 
   return (
     <>
@@ -73,7 +96,7 @@ export function TopNav() {
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={app.iconUrl} alt={app.name} width={28} height={28} className="app-switcher-icon" />
-                    <span style={{ fontStyle: "italic", fontWeight: 900 }}>{app.name}</span>
+                    <span style={{ fontWeight: 800, letterSpacing: "-0.02em" }}>{app.name}</span>
                   </a>
                 ))}
               </div>
@@ -89,9 +112,44 @@ export function TopNav() {
                 </Link>
               );
             })}
-            <button type="button" onClick={logout} className="topnav-logout">
-              Logout
-            </button>
+            <div className="topnav-more-wrap" ref={moreMenuRef}>
+              <button
+                type="button"
+                className="topnav-link topnav-more"
+                onClick={() => setMoreMenu((v) => !v)}
+                aria-expanded={moreMenu}
+                data-active={subNav.some(
+                  (m) => pathname === m.href || pathname.startsWith(`${m.href}/`),
+                )}
+              >
+                More
+                <ChevronIcon open={moreMenu} />
+              </button>
+              {moreMenu && (
+                <div className="topnav-more-menu">
+                  {subNav.map(({ href, label }) => (
+                    <Link
+                      key={href}
+                      href={href}
+                      className="topnav-more-item"
+                      onClick={() => setMoreMenu(false)}
+                    >
+                      {label}
+                    </Link>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMoreMenu(false);
+                      logout();
+                    }}
+                    className="topnav-more-item topnav-more-item--danger"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           <button
@@ -108,7 +166,7 @@ export function TopNav() {
         </div>
 
         <div className="topnav-menu">
-          {nav.map(({ href, label }) => {
+          {[...nav, ...subNav].map(({ href, label }) => {
             const active = pathname === href || pathname.startsWith(`${href}/`);
             return (
               <Link
@@ -117,7 +175,7 @@ export function TopNav() {
                 className="topnav-menu-link"
                 data-active={active}
                 onClick={() => setOpen(false)}
-                {...(href === "/folders" ? { "data-guide": "menu-folders" } : {})}
+                data-sub={subNav.some((m) => m.href === href)}
               >
                 {label}
               </Link>

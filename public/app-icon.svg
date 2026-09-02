@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <defs><linearGradient id="g" x1="0" y1="0" x2=".4" y2="1">
+    <stop offset="0" stop-color="#3a1266"/><stop offset="1" stop-color="#1c0733"/></linearGradient></defs>
+  <rect width="192" height="192" rx="44" fill="url(#g)"/>
+  <!--
+    게이지: 같은 <circle>(중심 96,106.46 / r 60)에 dasharray만 달리 줘서 그린다.
+    호를 각각 path로 그리면 미세한 좌표 오차로 두께·반지름이 어긋나 보인다.
+    회전 158.96도 = 왼쪽 아래 시작점.
+  -->
+  <g transform="rotate(158.96 96 106.46)" fill="none" stroke-width="11" stroke-linecap="round">
+    <circle cx="96" cy="106.46" r="60" stroke="rgba(200,184,255,.32)"
+            stroke-dasharray="232.6 144.4"/>
+    <circle cx="96" cy="106.46" r="60" stroke="#ead58c"
+            stroke-dasharray="128 249"/>
+  </g>
+  <path d="M64 114 L86 90 L106 100 L128 74" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

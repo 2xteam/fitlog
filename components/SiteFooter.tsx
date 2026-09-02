@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 
-/** 앱 하단 공통 푸터 — 서비스 설명과 MyJane 링크 */
+/** 앱 하단 공통 푸터 — 서비스 설명과 myjane 워드마크 링크 */
 export function SiteFooter() {
   return (
     <footer style={wrapStyle}>
@@ -12,9 +12,9 @@ export function SiteFooter() {
           href="https://www.myjane.co.kr"
           target="_blank"
           rel="noopener noreferrer"
-          style={linkStyle}
+          className="myjane-mark"
         >
-          MyJane
+          my<span>jane</span>
         </a>
       </p>
       <p style={copyStyle}>@2026 MyJane All rights reserved</p>
@@ -40,13 +40,6 @@ const descStyle: CSSProperties = {
 
 const lineStyle: CSSProperties = {
   margin: "0.75rem 0 0",
-};
-
-const linkStyle: CSSProperties = {
-  fontSize: "0.85rem",
-  fontWeight: 700,
-  color: "var(--accent)",
-  textDecoration: "none",
 };
 
 const copyStyle: CSSProperties = {

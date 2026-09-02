@@ -232,3 +232,96 @@ export function computeDerived(input: {
         : null,
   };
 }
+
+/* ────────────────────────────────────────────────────────────
+ * 적정 범위 (레이더 차트용)
+ *
+ * 결과지에 인쇄된 표준범위를 우선 쓰고, 없으면 키·성별로 계산한다.
+ * 골격근량은 수치 범위가 인쇄되지 않는 기종이 많아,
+ * 제지방량 표준범위에 현재 측정값의 (골격근/제지방) 비율을 적용해 환산한다.
+ * ──────────────────────────────────────────────────────────── */
+
+export type Range = { min: number; max: number; derived: boolean };
+
+export type RadarAxis = {
+  path: string;
+  label: string;
+  unit: string;
+  /** 값이 낮을수록 좋은 지표 */
+  lowerIsBetter?: boolean;
+  value: number;
+  range: Range;
+  /** 적정 대비 위치 */
+  status: "부족" | "적정" | "초과";
+};
+
+function printedRange(row: unknown, path: string): Range | null {
+  const base = path.replace(/\.value$/, "");
+  const min = pick(row, `${base}.min`);
+  const max = pick(row, `${base}.max`);
+  if (min == null || max == null || max <= min) return null;
+  return { min, max, derived: false };
+}
+
+/** 레이더 3축(체중·골격근량·체지방률)을 만든다. 값이나 범위가 없는 축은 제외한다. */
+export function buildRadarAxes(
+  row: unknown,
+  profile: { heightCm?: number | null; gender?: string | null },
+): RadarAxis[] {
+  const axes: RadarAxis[] = [];
+  const h = profile.heightCm ? profile.heightCm / 100 : null;
+  const isFemale = profile.gender === "female";
+
+  const add = (
+    path: string,
+    label: string,
+    unit: string,
+    range: Range | null,
+    lowerIsBetter?: boolean,
+  ) => {
+    const value = pick(row, path);
+    if (value == null || !range) return;
+    const status = value < range.min ? "부족" : value > range.max ? "초과" : "적정";
+    axes.push({ path, label, unit, value, range, status, lowerIsBetter });
+  };
+
+  // 체중 — 없으면 BMI 18.5~23 으로 환산
+  add(
+    "composition.weight.value",
+    "체중",
+    "kg",
+    printedRange(row, "composition.weight.value") ??
+      (h ? { min: +(18.5 * h * h).toFixed(1), max: +(23 * h * h).toFixed(1), derived: true } : null),
+  );
+
+  // 골격근량 — 인쇄 범위가 없으면 제지방량 범위 × (골격근/제지방) 비율
+  let smmRange = printedRange(row, "muscleFat.skeletalMuscleMass.value");
+  if (!smmRange) {
+    const ffmRange = printedRange(row, "composition.fatFreeMass.value");
+    const smm = pick(row, "muscleFat.skeletalMuscleMass.value");
+    const ffm = pick(row, "composition.fatFreeMass.value");
+    if (ffmRange && smm != null && ffm != null && ffm > 0) {
+      const ratio = smm / ffm;
+      smmRange = {
+        min: +(ffmRange.min * ratio).toFixed(1),
+        max: +(ffmRange.max * ratio).toFixed(1),
+        derived: true,
+      };
+    }
+  }
+  add("muscleFat.skeletalMuscleMass.value", "골격근량", "kg", smmRange);
+
+  // 체지방률 — 없으면 인바디 기준(남 10~20 / 여 18~28)
+  add(
+    "obesity.percentBodyFat.value",
+    "체지방률",
+    "%",
+    printedRange(row, "obesity.percentBodyFat.value") ??
+      (isFemale
+        ? { min: 18, max: 28, derived: true }
+        : { min: 10, max: 20, derived: true }),
+    true,
+  );
+
+  return axes;
+}
