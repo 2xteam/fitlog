@@ -583,9 +583,21 @@ a:hover {
   color: var(--accent);
 }
 
+/* 접힌 메뉴의 Logout — 위 링크들과 같은 줄 높이·정렬로 맞춘다.
+   버튼이라 폰트·배경·정렬을 명시해야 링크와 같아진다. */
 .topnav-menu-logout {
-  margin-top: 0.75rem;
-  width: fit-content;
+  width: 100%;
+  border: none;
+  border-bottom: none;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.topnav-menu-logout:hover {
+  color: var(--danger);
 }
 
 /* Click-away backdrop */
