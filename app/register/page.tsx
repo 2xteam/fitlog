@@ -3,11 +3,21 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { saveSession, type SessionUser } from "@/lib/session";
 
 export default function RegisterPage() {
   const router = useRouter();
+
+  // 운영 도메인에서는 통합 회원가입(www.myjane.co.kr)으로 보낸다.
+  useEffect(() => {
+    if (window.location.hostname.endsWith(".myjane.co.kr")) {
+      const next = encodeURIComponent("/home");
+      window.location.replace(
+        `https://www.myjane.co.kr/signup?from=fitlog&next=${next}`,
+      );
+    }
+  }, []);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");

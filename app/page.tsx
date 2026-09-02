@@ -15,7 +15,18 @@ export default function StartPage() {
   const [msg, setMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    if (loadSession()) router.replace("/home");
+    if (loadSession()) {
+      router.replace("/home");
+      return;
+    }
+    // 운영 도메인에서는 통합 로그인(www.myjane.co.kr)으로 보낸다.
+    // 로컬 개발에서는 쿠키 도메인이 적용되지 않으므로 이 화면을 그대로 쓴다.
+    if (window.location.hostname.endsWith(".myjane.co.kr")) {
+      const next = encodeURIComponent("/home");
+      window.location.replace(
+        `https://www.myjane.co.kr/login?from=fitlog&next=${next}`,
+      );
+    }
   }, [router]);
 
   const login = useCallback(async () => {
