@@ -22,13 +22,13 @@ export const PRESET_THEMES: ThemeConfig[] = [
     id: "dark",
     label: "다크",
     dataAttr: "dark",
-    preview: { bg: "#000000", accent: "#2ee8ae", text: "#ffffff" },
+    preview: { bg: "#190527", accent: "#a78bfa", text: "#f6f1fb" },
   },
   {
     id: "light",
-    label: "화이트",
+    label: "라이트",
     dataAttr: "light",
-    preview: { bg: "#f2f2f7", accent: "#1ab485", text: "#1a1a1a" },
+    preview: { bg: "#fdfbff", accent: "#7c3aed", text: "#1a0f2e" },
   },
   {
     id: "violet",
@@ -40,19 +40,20 @@ export const PRESET_THEMES: ThemeConfig[] = [
     id: "custom",
     label: "커스텀",
     dataAttr: "custom",
-    preview: { bg: "#000000", accent: "#2ee8ae", text: "#ffffff" },
+    preview: { bg: "#190527", accent: "#a78bfa", text: "#f6f1fb" },
   },
 ];
 
-const STORAGE_KEY = "snapword_theme";
+const STORAGE_KEY = "fitlog_theme";
 
 type StoredTheme = { id: ThemeId; custom?: ThemeCustomColor };
 
 export function loadTheme(): StoredTheme {
-  if (typeof window === "undefined") return { id: "dark" };
+  // FitLog 기본은 결쩜사 계열 라이트(라벤더)
+  if (typeof window === "undefined") return { id: "light" };
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { id: "dark" };
+    if (!raw) return { id: "light" };
     const parsed = JSON.parse(raw) as Partial<StoredTheme>;
     const validIds: ThemeId[] = ["dark", "light", "violet", "custom"];
     if (!validIds.includes(parsed.id as ThemeId)) return { id: "dark" };

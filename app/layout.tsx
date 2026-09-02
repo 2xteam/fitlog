@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SnapWord",
-  description: "OpenAI로 교재·텍스트에서 단어를 추출·정리하는 SnapWord",
+  title: "FitLog",
+  description: "인바디 결과지를 사진으로 기록하고 체성분 추이를 관리하는 FitLog",
   icons: {
     icon: "/favicon.png",
     apple: "/icon.png",
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 const themeInitScript = `
 (function(){
   try {
-    var STORAGE_KEY = 'snapword_theme';
+    var STORAGE_KEY = 'fitlog_theme';
     var raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
     var stored = JSON.parse(raw);
@@ -89,8 +89,15 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <head>
+        {/* Pretendard — 결쩜사와 동일한 본문 서체 */}
+        <link
+          rel="stylesheet"
+          as="style"
+          crossOrigin="anonymous"
+          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"
+        />
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-        <meta name="apple-mobile-web-app-title" content="SnapWord" />
+        <meta name="apple-mobile-web-app-title" content="FitLog" />
       </head>
       <body style={{ background: "var(--bg-primary)", color: "var(--text-primary)" }}>
         {children}

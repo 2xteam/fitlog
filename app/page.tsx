@@ -87,7 +87,7 @@ export default function StartPage() {
           }}
         >
           <AppIcon size={36} priority className="app-brand-icon" />
-          <span style={{ fontStyle: "italic", fontWeight: 900, color: "var(--accent)" }}>SnapWord</span>
+          <span style={{ fontWeight: 900, letterSpacing: "-0.02em", color: "var(--accent)" }}>FitLog</span>
         </h1>
         <p style={{ margin: "0 0 1.5rem", color: "var(--text-secondary)", fontSize: 14 }}>
           전화번호와 PIN으로 로그인하세요.

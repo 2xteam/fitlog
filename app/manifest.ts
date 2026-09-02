@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "SnapWord",
-    short_name: "SnapWord",
-    description: "단어를 추출·정리하고 학습하는 SnapWord",
+    name: "FitLog",
+    short_name: "FitLog",
+    description: "인바디 결과지를 기록하고 체성분 추이를 보는 FitLog",
     start_url: "/home",
     display: "standalone",
     background_color: "#000000",

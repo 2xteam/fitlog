@@ -59,7 +59,7 @@ export function TopNav() {
               onClick={() => setAppMenu((v) => !v)}
             >
               <AppIcon size={28} alt="" priority className="topnav-logo-icon" />
-              <span style={{ fontStyle: "italic", fontWeight: 900 }}>SnapWord</span>
+              <span style={{ fontWeight: 900, letterSpacing: "-0.02em" }}>FitLog</span>
               <ChevronIcon open={appMenu} />
             </button>
             {appMenu && (

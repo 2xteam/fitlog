@@ -5,6 +5,9 @@ import { readMultipartImage } from "@/lib/readMultipartImage";
 import { extractInBodyFromImage, VISION_MODEL } from "@/lib/inbodyVision";
 import { validateMeasurement, computeDerived } from "@/lib/inbody";
 import { isOpenAiKeyConfigured } from "@/lib/openaiKey";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { getR2Bucket, getR2Client, getR2PublicUrl } from "@/lib/r2";
+import crypto from "node:crypto";
 
 /**
  * 인바디 결과지 사진 → 구조화 데이터 추출.
@@ -75,10 +78,33 @@ export async function POST(req: Request) {
     waistCircumference: data.research?.waistCircumference ?? null,
   });
 
+  // 결과지 원본을 보관한다. 추출 오류를 나중에 확인하거나,
+  // etc 항목을 정식 필드로 승격할 때 다시 뽑기 위해서다.
+  let imageUrl: string | null = null;
+  try {
+    const ext = mimeType.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
+    const key = `fitlog/${userId ?? "unknown"}/${Date.now()}-${crypto
+      .randomBytes(6)
+      .toString("hex")}.${ext}`;
+    await getR2Client().send(
+      new PutObjectCommand({
+        Bucket: getR2Bucket(),
+        Key: key,
+        Body: buffer,
+        ContentType: mimeType,
+      }),
+    );
+    imageUrl = `${getR2PublicUrl().replace(/\/$/, "")}/${key}`;
+  } catch (e) {
+    // 보관에 실패해도 추출 결과는 돌려준다
+    console.error("[measurements/extract] R2", e);
+  }
+
   return NextResponse.json({
     ok: true,
     data: { ...data, derived },
     warnings,
+    imageUrl,
     model: VISION_MODEL,
   });
 }
