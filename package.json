@@ -1,0 +1,34 @@
+{
+  "name": "fitlog",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3003",
+    "dev:https": "next dev --experimental-https -p 3003",
+    "build": "next build",
+    "start": "next start -p 3003",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1123.0",
+    "bcryptjs": "^3.0.2",
+    "mongodb": "^7.1.1",
+    "mongoose": "^8.14.0",
+    "next": "^15.2.4",
+    "nodemailer": "^8.0.7",
+    "openai": "^6.34.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22.14.0",
+    "@types/nodemailer": "^8.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^15.2.4",
+    "typescript": "^5.8.0"
+  }
+}
