@@ -6,7 +6,7 @@ import { extractInBodyFromImage, VISION_MODEL } from "@/lib/inbodyVision";
 import { validateMeasurement, computeDerived } from "@/lib/inbody";
 import { isOpenAiKeyConfigured } from "@/lib/openaiKey";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { getR2Bucket, getR2Client, getR2PublicUrl } from "@/lib/r2";
+import { describeR2Error, getR2Bucket, getR2Client, getR2PublicUrl } from "@/lib/r2";
 import crypto from "node:crypto";
 
 /**
@@ -101,7 +101,7 @@ export async function POST(req: Request) {
     // 다만 **조용히 넘어가지 않는다** — 원본이 없는 기록이 쌓이면
     // 나중에 추출을 다시 돌릴 수도, 값을 대조할 수도 없다.
     console.error("[measurements/extract] R2", e);
-    imageError = "원본 사진을 보관하지 못했어요. 저장 후 수정 화면에서 다시 첨부할 수 있어요.";
+    imageError = `${describeR2Error(e)} 값은 그대로 저장돼요. 나중에 수정 화면에서 사진만 다시 붙일 수 있어요.`;
   }
 
   return NextResponse.json({

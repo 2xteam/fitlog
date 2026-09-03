@@ -174,13 +174,18 @@ export default function EditMeasurementPage() {
         method: "POST",
         body: form,
       });
-      const json = (await res.json()) as { ok: boolean; imageUrl?: string; error?: string };
+      const json = (await res.json()) as {
+        ok: boolean;
+        imageUrl?: string;
+        warning?: string | null;
+        error?: string;
+      };
       if (!res.ok || !json.ok || !json.imageUrl) {
         setMsg(json.error ?? "사진을 올리지 못했어요.");
         return;
       }
       setImageUrl(json.imageUrl);
-      setMsg(null);
+      setMsg(json.warning ?? null);
     } catch {
       setMsg("네트워크 오류로 사진을 올리지 못했어요.");
     } finally {
