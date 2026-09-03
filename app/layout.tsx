@@ -23,7 +23,8 @@ const themeInitScript = `
     var raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
     var stored = JSON.parse(raw);
-    var validIds = ['dark','light','violet','custom'];
+    // 없앤 네온핑크(violet)는 여기서 걸러 라이트(=:root 기본)로 흘린다
+    var validIds = ['light','dark','custom'];
     if (!stored || !validIds.includes(stored.id)) return;
 
     document.documentElement.setAttribute('data-theme', stored.id);

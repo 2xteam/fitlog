@@ -1,31 +1,13 @@
-/* ── Theme Variables — SETLOG-inspired ── */
-/* 기본(fallback)은 다크 테마. data-theme 속성으로 전환됩니다. */
+/* ── 테마 변수 ──
+ * 색을 직접 쓰지 않고 항상 이 변수를 참조한다. 그래야 테마 전환이 깨지지 않는다.
+ * 팔레트는 결쩜사(kyulzzumsa.co.kr)를 따른다.
+ * 근거: my-obsidian-vault → 20-Design/앱 공통 UI와 아이콘.md
+ *
+ * 기본은 **라이트**다. 첫 페인트가 기본과 같아야 하므로 `:root`에 라이트를 둔다.
+ * ── */
 
-:root,
-[data-theme="dark"] {
-  --bg-primary: #190527;
-  --bg-secondary: #1e0938;
-  --bg-card: #2d1054;
-  --bg-elevated: #3a1760;
-  --border: rgba(196, 181, 253, 0.18);
-  --border-subtle: rgba(196, 181, 253, 0.08);
-  --text-primary: #f6f1fb;
-  --text-secondary: #b0a3cd;
-  --text-muted: #8577a8;
-  --accent: #a78bfa;
-  --accent-hover: #b9a3fb;
-  --accent-subtle: rgba(167, 139, 250, 0.16);
-  --point: #e8c96a;
-  --point-subtle: rgba(232, 201, 106, 0.14);
-  --danger: #ff7a90;
-  --danger-subtle: rgba(255, 122, 144, 0.14);
-  --success: #7ee0b8;
-  --success-subtle: rgba(126, 224, 184, 0.14);
-  --warning: #ead58c;
-  --input-bg: rgba(255, 255, 255, 0.04);
-  --input-border: rgba(196, 181, 253, 0.2);
-  --gold: #ead58c;
-  --on-accent: #21083f;
+/* 구조 값 — 테마가 바뀌어도 그대로다 */
+:root {
   --radius-sm: 10px;
   --radius-md: 18px;
   --radius-lg: 24px;
@@ -33,12 +15,10 @@
   --radius-full: 9999px;
   --nav-height: 56px;
   --nav-top: 0px;
-  --chat-fab-bg: var(--accent);
-  --chat-fab-fg: #21083f;
-  --chat-btn-color: var(--accent);
 }
 
-/* ── Light Theme ── */
+/* 라이트 — 기본 테마 */
+:root,
 [data-theme="light"] {
   --bg-primary: #fdfbff;
   --bg-secondary: #f5f0fc;
@@ -66,52 +46,33 @@
   --chat-fab-fg: #ffffff;
 }
 
-/* ── Violet Theme → Neon Pink ── */
-[data-theme="violet"] {
-  --bg-primary: #050008;
-  --bg-secondary: #0d0812;
-  --bg-card: #1a1020;
-  --bg-elevated: #25182e;
-  --border: rgba(255, 78, 205, 0.12);
-  --border-subtle: rgba(255, 78, 205, 0.06);
-  --text-primary: #f8f0ff;
-  --text-secondary: #cc88ee;
-  --text-muted: #7a4a99;
-  --accent: #ff4ecd;
-  --accent-hover: #e63baf;
-  --accent-subtle: rgba(255, 78, 205, 0.14);
-  --point: #2ee8ae;
-  --point-subtle: rgba(46, 232, 174, 0.12);
-  --danger: #ff6b8a;
-  --danger-subtle: rgba(255, 107, 138, 0.12);
-  --success: #2ee8ae;
-  --success-subtle: rgba(46, 232, 174, 0.12);
-  --warning: #ffc233;
-  --input-bg: #1a1020;
-  --input-border: rgba(255, 78, 205, 0.18);
-  --radius-sm: 12px;
-  --radius-md: 18px;
-  --radius-lg: 24px;
-  --radius-xl: 32px;
-  --radius-full: 9999px;
-  --nav-height: 56px;
-  --nav-top: 0px;
-  --chat-fab-bg: #ff4ecd;
-  --chat-fab-fg: #ffffff;
-  --chat-btn-color: #ff4ecd;
-}
-
-/* ── Custom Theme (CSS 변수는 ThemeProvider에서 인라인 style로 주입) ── */
-[data-theme="custom"] {
-  --radius-sm: 12px;
-  --radius-md: 18px;
-  --radius-lg: 24px;
-  --radius-xl: 32px;
-  --radius-full: 9999px;
-  --nav-height: 56px;
-  --nav-top: 0px;
+/* 퍼플 다크 */
+[data-theme="dark"] {
+  --bg-primary: #190527;
+  --bg-secondary: #1e0938;
+  --bg-card: #2d1054;
+  --bg-elevated: #3a1760;
+  --border: rgba(196, 181, 253, 0.18);
+  --border-subtle: rgba(196, 181, 253, 0.08);
+  --text-primary: #f6f1fb;
+  --text-secondary: #b0a3cd;
+  --text-muted: #8577a8;
+  --accent: #a78bfa;
+  --accent-hover: #b9a3fb;
+  --accent-subtle: rgba(167, 139, 250, 0.16);
+  --point: #e8c96a;
+  --point-subtle: rgba(232, 201, 106, 0.14);
+  --danger: #ff7a90;
+  --danger-subtle: rgba(255, 122, 144, 0.14);
+  --success: #7ee0b8;
+  --success-subtle: rgba(126, 224, 184, 0.14);
+  --warning: #ead58c;
+  --input-bg: rgba(255, 255, 255, 0.04);
+  --input-border: rgba(196, 181, 253, 0.2);
+  --gold: #ead58c;
+  --on-accent: #21083f;
   --chat-fab-bg: var(--accent);
-  --chat-fab-fg: #ffffff;
+  --chat-fab-fg: #21083f;
   --chat-btn-color: var(--accent);
 }
 

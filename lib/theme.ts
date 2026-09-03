@@ -1,4 +1,4 @@
-export type ThemeId = "dark" | "light" | "violet" | "custom";
+export type ThemeId = "light" | "dark" | "custom";
 
 export type ThemeCustomColor = {
   /** 커스텀 모드 전용 accent 색상 (hex, 기본 #2ee8ae) */
@@ -31,12 +31,6 @@ export const PRESET_THEMES: ThemeConfig[] = [
     preview: { bg: "#fdfbff", accent: "#7c3aed", text: "#1a0f2e" },
   },
   {
-    id: "violet",
-    label: "네온핑크",
-    dataAttr: "violet",
-    preview: { bg: "#050008", accent: "#ff4ecd", text: "#f8f0ff" },
-  },
-  {
     id: "custom",
     label: "커스텀",
     dataAttr: "custom",
@@ -44,22 +38,27 @@ export const PRESET_THEMES: ThemeConfig[] = [
   },
 ];
 
+/** 기본 테마. `app/globals.css`의 `:root`와 **반드시 같아야** 한다 */
+export const DEFAULT_THEME: ThemeId = "light";
+
 const STORAGE_KEY = "fitlog_theme";
 
 type StoredTheme = { id: ThemeId; custom?: ThemeCustomColor };
 
 export function loadTheme(): StoredTheme {
   // FitLog 기본은 결쩜사 계열 라이트(라벤더)
-  if (typeof window === "undefined") return { id: "light" };
+  if (typeof window === "undefined") return { id: DEFAULT_THEME };
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { id: "light" };
+    if (!raw) return { id: DEFAULT_THEME };
     const parsed = JSON.parse(raw) as Partial<StoredTheme>;
-    const validIds: ThemeId[] = ["dark", "light", "violet", "custom"];
-    if (!validIds.includes(parsed.id as ThemeId)) return { id: "dark" };
+    const validIds: ThemeId[] = ["light", "dark", "custom"];
+    // 없앤 네온핑크(violet)가 저장돼 있으면 라이트로 되돌린다.
+    // 결쩜사 시트 디자인과 대조가 어긋나 랜딩이 깨져 보였다
+    if (!validIds.includes(parsed.id as ThemeId)) return { id: DEFAULT_THEME };
     return { id: parsed.id as ThemeId, custom: parsed.custom };
   } catch {
-    return { id: "dark" };
+    return { id: DEFAULT_THEME };
   }
 }
 

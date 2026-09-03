@@ -9,6 +9,7 @@ import {
 } from "react";
 import {
   buildCustomVars,
+  DEFAULT_THEME,
   loadTheme,
   saveTheme,
   type ThemeCustomColor,
@@ -24,7 +25,7 @@ type ThemeContextValue = {
 const DEFAULT_CUSTOM: ThemeCustomColor = { accent: "#3b82f6", bg: "#0a0a0f" };
 
 const ThemeContext = createContext<ThemeContextValue>({
-  themeId: "dark",
+  themeId: DEFAULT_THEME,
   custom: DEFAULT_CUSTOM,
   setTheme: () => {},
 });
@@ -48,7 +49,7 @@ function applyTheme(id: ThemeId, custom: ThemeCustomColor) {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [themeId, setThemeId] = useState<ThemeId>("dark");
+  const [themeId, setThemeId] = useState<ThemeId>(DEFAULT_THEME);
   const [custom, setCustom] = useState<ThemeCustomColor>(DEFAULT_CUSTOM);
 
   // 최신 custom 값을 ref로 유지 → stale closure 방지
