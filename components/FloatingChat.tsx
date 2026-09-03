@@ -26,6 +26,8 @@ export function FloatingChat() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  /** 스레드를 불러오는 중 — 안내 문구가 깜빡이지 않게 한다 */
+  const [hydrating, setHydrating] = useState(false);
   const [tokenBalance, setTokenBalance] = useState<number | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const pendingMsg = useRef<string | null>(null);
@@ -56,12 +58,20 @@ export function FloatingChat() {
 
   const fetchMessages = useCallback(
     async (s: SessionUser, threadId: string) => {
-      const res = await fetch(
-        `/api/chat/threads/${threadId}/messages?phone=${encodeURIComponent(s.phone)}&userId=${encodeURIComponent(s.id)}`,
-      );
-      const json = (await res.json()) as { ok: boolean; items?: Msg[] };
-      if (json.ok && json.items) setMessages(json.items);
-      else setMessages([]);
+      // 불러오는 동안에는 빈 화면 안내를 띄우지 않는다 (이력이 있는데 깜빡인다)
+      setHydrating(true);
+      try {
+        const res = await fetch(
+          `/api/chat/threads/${threadId}/messages?phone=${encodeURIComponent(s.phone)}&userId=${encodeURIComponent(s.id)}`,
+        );
+        const json = (await res.json()) as { ok: boolean; items?: Msg[] };
+        if (json.ok && json.items) setMessages(json.items);
+        else setMessages([]);
+      } catch {
+        setMessages([]);
+      } finally {
+        setHydrating(false);
+      }
     },
     [],
   );
@@ -82,6 +92,7 @@ export function FloatingChat() {
   useEffect(() => {
     if (!session || !open) return;
     let cancelled = false;
+    setHydrating(true);
 
     (async () => {
       await refreshTokenBalance(session);
@@ -116,7 +127,9 @@ export function FloatingChat() {
         setActive(DRAFT_ID);
         setMessages([]);
       }
-    })();
+    })().finally(() => {
+      if (!cancelled) setHydrating(false);
+    });
 
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -334,7 +347,7 @@ export function FloatingChat() {
           <div style={{ flex: 1, minHeight: 0, display: "flex", position: "relative", overflow: "hidden" }}>
             {/* Messages */}
             <div style={messagesContainerStyle}>
-              {messages.length === 0 ? (
+              {messages.length === 0 && !hydrating ? (
                 <EmptyGuide onPick={(q) => void sendText(q)} />
               ) : (
                 messages.map((m) => {
@@ -570,43 +583,38 @@ function FlexFabIcon() {
         className="fab-burst"
         cx="32"
         cy="32"
-        r="27"
+        r="27.5"
         fill="none"
         stroke={fg}
-        strokeWidth="2"
+        strokeWidth="1.8"
       />
 
-      <g className="fab-arm">
-        {/* 어깨 → 이두 → 팔꿈치로 이어지는 팔 */}
-        <path
-          d="M14 47 q0-15 12-17 q11-2 14 5"
-          fill="none"
-          stroke={fg}
-          strokeWidth="11.5"
-          strokeLinecap="round"
-        />
-        {/* 주먹 */}
-        <rect x="31" y="10" width="17" height="16" rx="7.5" fill={fg} />
+      {/* 팔은 선화(아웃라인)로 그린다 — 주먹 · 엄지 · 아래팔 · 바깥 윤곽 · 이두 · 주름 */}
+      <g
+        className="fab-arm"
+        fill="none"
+        stroke={fg}
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M28 20 q-3 -13 8 -13 q10 0 8 13" />
+        <path d="M28 20 q-5 1 -4 4 q1 4 7 3" />
+        <path d="M34 23 q3 7 2 13" />
+        <path d="M44 20 q6 11 5 22 q-1 9 -8 11 q-9 3 -21 1" />
 
         {/* 이두 — 여기만 부푼다 */}
         <g className="fab-bicep">
-          <ellipse cx="23" cy="33" rx="10.5" ry="9" fill={fg} />
-          <path
-            d="M18.5 29.5 q4.5 3.5 9 1.5"
-            fill="none"
-            stroke={bg}
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            opacity="0.65"
-          />
+          <path d="M9 38 q10 -12 23 -6 q4 2 5 5" />
+          <path d="M20 45 q11 5 20 1" />
         </g>
       </g>
 
       {/* 불끈 순간의 스파크 */}
       <g className="fab-spark" stroke={fg} strokeWidth="2.4" strokeLinecap="round">
-        <path d="M12 26 L8 22" />
-        <path d="M22 15 L20 10" />
-        <path d="M50 38 L55 37" />
+        <path d="M13 25 L9 21" />
+        <path d="M31 6 L30 1" />
+        <path d="M52 40 L57 39" />
       </g>
     </svg>
   );

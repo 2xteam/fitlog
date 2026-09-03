@@ -790,9 +790,10 @@ a[style*="var(--bg-card)"]:hover {
   animation: fab-arm-flex 2.8s ease-in-out infinite;
 }
 
+/* 선화라 크게 키우면 아래팔 선과 어긋난다. 살짝만 부풀린다. */
 .fab-bicep {
   transform-box: fill-box;
-  transform-origin: 55% 95%;
+  transform-origin: 70% 100%;
   animation: fab-bicep-flex 2.8s ease-in-out infinite;
 }
 
@@ -818,9 +819,9 @@ a[style*="var(--bg-card)"]:hover {
 
 @keyframes fab-bicep-flex {
   0%, 52%, 100% { transform: scale(1); }
-  60%           { transform: scale(1.28, 1.22); }
-  70%           { transform: scale(1.1, 1.08); }
-  78%           { transform: scale(1.22, 1.16); }
+  60%           { transform: scale(1.05, 1.16); }
+  70%           { transform: scale(1.02, 1.06); }
+  78%           { transform: scale(1.04, 1.12); }
   88%           { transform: scale(1); }
 }
 
