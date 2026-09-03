@@ -10,7 +10,6 @@ import { clearSession } from "@/lib/session";
 const nav = [
   { href: "/home", label: "Home" },
   { href: "/measurements", label: "Inbody" },
-  { href: "/charts", label: "History" },
 ];
 
 /** 부가 기능 — 데스크톱은 "더보기" 안에, 모바일은 햄버거 메뉴 아래쪽에 */

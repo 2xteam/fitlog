@@ -85,12 +85,19 @@ export function FloatingChat() {
 
     (async () => {
       await refreshTokenBalance(session);
-      const res = await fetch(
-        `/api/chat/threads?phone=${encodeURIComponent(session.phone)}&userId=${encodeURIComponent(session.id)}`,
-      );
-      const json = (await res.json()) as { ok: boolean; items?: Thread[] };
+
+      // 대화 이력을 못 불러와도 새 대화는 시작할 수 있어야 한다
+      let list: Thread[] = [];
+      try {
+        const res = await fetch(
+          `/api/chat/threads?phone=${encodeURIComponent(session.phone)}&userId=${encodeURIComponent(session.id)}`,
+        );
+        const json = (await res.json()) as { ok: boolean; items?: Thread[] };
+        if (json.ok && json.items) list = json.items;
+      } catch {
+        /* 목록 없이 진행 */
+      }
       if (cancelled) return;
-      const list = json.ok && json.items ? json.items : [];
       setThreads(list);
 
       if (pendingMsg.current) {
@@ -134,14 +141,32 @@ export function FloatingChat() {
     let threadId = active;
 
     if (threadId === DRAFT_ID || !threadId) {
-      const res = await fetch("/api/chat/threads", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ phone: session.phone, userId: session.id }),
-      });
-      const json = (await res.json()) as { ok: boolean; id?: string };
-      if (!json.ok || !json.id) return;
-      threadId = json.id;
+      // 대화방 생성이 실패하면 조용히 사라지지 않고 이유를 보여준다
+      let created: string | null = null;
+      try {
+        const res = await fetch("/api/chat/threads", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ phone: session.phone, userId: session.id }),
+        });
+        const json = (await res.json()) as { ok: boolean; id?: string };
+        if (json.ok && json.id) created = json.id;
+      } catch {
+        /* 아래에서 안내 */
+      }
+      if (!created) {
+        setMessages((m) => [
+          ...m,
+          {
+            _id: `err-${Date.now()}`,
+            role: "assistant",
+            content: "지금은 상담사와 연결할 수 없어요. 잠시 후 다시 시도해 주세요.",
+            createdAt: new Date().toISOString(),
+          },
+        ]);
+        return;
+      }
+      threadId = created;
       setActive(threadId);
       const now = new Date().toISOString();
       setThreads((prev) => [{ _id: threadId!, title: "새 대화", updatedAt: now }, ...prev]);
@@ -267,7 +292,7 @@ export function FloatingChat() {
           style={fabStyle}
           data-guide="chat-fab"
         >
-          <SmileyFabIcon />
+          <FlexFabIcon />
         </button>
       )}
 
@@ -309,10 +334,8 @@ export function FloatingChat() {
           <div style={{ flex: 1, minHeight: 0, display: "flex", position: "relative", overflow: "hidden" }}>
             {/* Messages */}
             <div style={messagesContainerStyle}>
-              {messages.length === 0 && active === DRAFT_ID ? (
-                <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <p style={{ color: "var(--text-muted)", fontSize: 13 }}>메시지를 입력하여 대화를 시작하세요.</p>
-                </div>
+              {messages.length === 0 ? (
+                <EmptyGuide onPick={(q) => void sendText(q)} />
               ) : (
                 messages.map((m) => {
                   const isPendingAi = m._id.startsWith("local-ai-") && busy;
@@ -470,17 +493,121 @@ export function FloatingChat() {
   );
 }
 
+/* ── 빈 화면 안내 ── */
+
+/** 상담사가 무엇을 도와줄 수 있는지 대화처럼 먼저 보여준다 */
+const SUGGESTIONS = [
+  "최근 인바디 결과를 요약해줘",
+  "골격근량을 늘리려면 뭘 해야 해?",
+  "체지방률이 적정 범위보다 높아. 뭘 바꿔야 할까?",
+  "지난 기록과 비교해서 뭐가 달라졌어?",
+  "내 체성분에 맞는 운동 루틴을 추천해줘",
+];
+
+function EmptyGuide({ onPick }: { onPick: (q: string) => void }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 4 }}>
+      <GuideBubble text="안녕하세요, **AI Fit 상담사**예요. 기록해 둔 인바디 수치를 바탕으로 지금 상태와 다음 할 일을 같이 정리해 드려요." />
+      <GuideBubble text="이런 걸 물어볼 수 있어요 👇" />
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start" }}>
+        {SUGGESTIONS.map((q) => (
+          <button
+            key={q}
+            type="button"
+            className="chat-suggestion"
+            onClick={() => onPick(q)}
+          >
+            {q}
+          </button>
+        ))}
+      </div>
+
+      <p style={{ margin: "4px 0 0", fontSize: 11.5, color: "var(--text-muted)" }}>
+        눌러서 바로 물어보거나, 아래에 직접 입력해도 돼요.
+      </p>
+    </div>
+  );
+}
+
+function GuideBubble({ text }: { text: string }) {
+  return (
+    <div style={{ display: "flex", width: "100%", justifyContent: "flex-start", flexShrink: 0 }}>
+      <div
+        className="chat-md"
+        style={{
+          maxWidth: "88%",
+          padding: "0.45rem 0.65rem",
+          borderRadius: "10px 10px 10px 3px",
+          background: "var(--bg-elevated)",
+          color: "var(--text-primary)",
+          fontSize: 13,
+        }}
+      >
+        <Markdown>{text}</Markdown>
+      </div>
+    </div>
+  );
+}
+
 /* ── Icons ── */
 
-function SmileyFabIcon() {
+/**
+ * 근육을 불끈 쥐는 팔.
+ * 팔 전체가 살짝 조여졌다 펴지고(`fab-arm`), 이두가 부풀며(`fab-bicep`),
+ * 그 순간 링과 스파크가 한 번 퍼진다(`fab-burst` · `fab-spark`).
+ * 애니메이션은 globals.css 에 있다.
+ */
+function FlexFabIcon() {
+  const fg = "var(--chat-fab-fg, #21083f)";
+  const bg = "var(--chat-fab-bg, var(--accent))";
   return (
     <svg width="52" height="52" viewBox="0 0 64 64" aria-hidden>
-      <circle cx="32" cy="32" r="31" fill="var(--accent)" />
-      <circle cx="22" cy="26" r="4.5" fill="rgba(0,0,0,0.55)" />
-      <circle cx="42" cy="26" r="4.5" fill="rgba(0,0,0,0.55)" />
-      <circle cx="23.5" cy="24" r="1.5" fill="rgba(255,255,255,0.5)" />
-      <circle cx="43.5" cy="24" r="1.5" fill="rgba(255,255,255,0.5)" />
-      <path d="M22 38 Q32 48, 42 38" fill="none" stroke="rgba(0,0,0,0.5)" strokeWidth="2.5" strokeLinecap="round" />
+      <circle cx="32" cy="32" r="31" fill={bg} />
+
+      {/* 불끈할 때 한 번 퍼지는 링 */}
+      <circle
+        className="fab-burst"
+        cx="32"
+        cy="32"
+        r="27"
+        fill="none"
+        stroke={fg}
+        strokeWidth="2"
+      />
+
+      <g className="fab-arm">
+        {/* 어깨 → 이두 → 팔꿈치로 이어지는 팔 */}
+        <path
+          d="M14 47 q0-15 12-17 q11-2 14 5"
+          fill="none"
+          stroke={fg}
+          strokeWidth="11.5"
+          strokeLinecap="round"
+        />
+        {/* 주먹 */}
+        <rect x="31" y="10" width="17" height="16" rx="7.5" fill={fg} />
+
+        {/* 이두 — 여기만 부푼다 */}
+        <g className="fab-bicep">
+          <ellipse cx="23" cy="33" rx="10.5" ry="9" fill={fg} />
+          <path
+            d="M18.5 29.5 q4.5 3.5 9 1.5"
+            fill="none"
+            stroke={bg}
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            opacity="0.65"
+          />
+        </g>
+      </g>
+
+      {/* 불끈 순간의 스파크 */}
+      <g className="fab-spark" stroke={fg} strokeWidth="2.4" strokeLinecap="round">
+        <path d="M12 26 L8 22" />
+        <path d="M22 15 L20 10" />
+        <path d="M50 38 L55 37" />
+      </g>
     </svg>
   );
 }
@@ -535,7 +662,6 @@ const fabStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  animation: "fab-spin 6s linear infinite",
   filter: "drop-shadow(0 3px 10px rgba(0,0,0,0.35))",
 };
 
