@@ -1149,3 +1149,35 @@ a[style*="var(--bg-card)"]:hover {
 [data-theme="custom"] .myjane-mark > span {
   color: #8b5cf6;
 }
+
+/* ── 소개 페이지 레이아웃 ──
+ * 시트를 쌓는 화면의 바깥 컨테이너. 이 규칙이 없으면 시트가 화면 전체 폭으로
+ * 퍼져 결쩜사 패턴("옅은 배경 위에 둥근 시트")이 무너진다.
+ * 좁은 창에서는 티가 나지 않아 놓치기 쉽다 — 넓은 창에서 확인할 것.
+ * 근거: my-obsidian-vault → 20-Design/결쩜사 페이지 패턴.md
+ * ── */
+.page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: clamp(18px, 4vw, 28px) clamp(16px, 4.2vw, 24px) 40px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.row--wrap {
+  flex-wrap: wrap;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.btn--sm {
+  padding: 7px 13px;
+  font-size: 12.5px;
+  border-radius: 9px;
+}
