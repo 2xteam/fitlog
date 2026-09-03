@@ -28,6 +28,8 @@ type QueueItem = {
   data: Extracted;
   warnings: Warning[];
   imageUrl: string | null;
+  /** 원본을 R2에 보관하지 못한 경우의 안내 */
+  imageError: string | null;
   model: string | null;
 };
 
@@ -111,6 +113,7 @@ export default function NewMeasurementPage() {
           data?: Extracted;
           warnings?: Warning[];
           imageUrl?: string | null;
+          imageError?: string | null;
           model?: string;
           error?: string;
           message?: string;
@@ -135,6 +138,7 @@ export default function NewMeasurementPage() {
           data: json.data,
           warnings: json.warnings ?? [],
           imageUrl: json.imageUrl ?? null,
+          imageError: json.imageError ?? null,
           model: json.model ?? null,
         });
       } catch {
@@ -584,6 +588,11 @@ export default function NewMeasurementPage() {
         <p className="field-hint" style={{ marginTop: 8 }}>
           {current.fileName}
         </p>
+        {current.imageError ? (
+          <p className="field-hint" style={{ color: "var(--danger)", marginTop: 4 }}>
+            {current.imageError}
+          </p>
+        ) : null}
       </Sheet>
 
       <Sheet eyebrow="MEASURED AT" headline="검사일시">

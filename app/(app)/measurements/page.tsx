@@ -8,7 +8,13 @@ import { BodyRadar } from "@/components/BodyRadar";
 import { FieldRow, toPoints, type Row } from "@/components/TrendChart";
 import { loadSession, type SessionUser } from "@/lib/session";
 import { useProfile } from "@/lib/useProfile";
-import { FIELDS, PRIMARY_FIELDS, buildRadarAxes, pick } from "@/lib/inbody";
+import {
+  FIELDS,
+  PRIMARY_FIELDS,
+  buildRadarAxes,
+  groupFields,
+  pick,
+} from "@/lib/inbody";
 
 /**
  * Inbody — 기록을 읽는 화면 하나.
@@ -78,6 +84,9 @@ export default function InbodyPage() {
         : [],
     [latest, profile],
   );
+
+  /** 구획(체성분분석 · 비만분석 …)으로 묶어 보여준다 */
+  const groups = useMemo(() => groupFields(available), [available]);
 
   const toggle = (path: string) => setOpen((prev) => toggled(prev, path));
   const toggleTrend = (path: string) => setTrendOpen((prev) => toggled(prev, path));
@@ -162,17 +171,22 @@ export default function InbodyPage() {
               {allOpen ? "모두 접기" : "모두 펼치기"}
             </button>
 
-            <div style={{ marginTop: 14 }}>
-              {available.map((f) => (
-                <FieldRow
-                  key={f.path}
-                  field={f}
-                  points={toPoints(rows, f.path)}
-                  open={open.has(f.path)}
-                  onToggle={() => toggle(f.path)}
-                />
-              ))}
-            </div>
+            {groups.map((g) => (
+              <div key={g.key} style={{ marginTop: 18 }}>
+                <p className="eyebrow" style={{ margin: "0 0 2px" }}>
+                  {g.label} · {g.fields.length}
+                </p>
+                {g.fields.map((f) => (
+                  <FieldRow
+                    key={f.path}
+                    field={f}
+                    points={toPoints(rows, f.path)}
+                    open={open.has(f.path)}
+                    onToggle={() => toggle(f.path)}
+                  />
+                ))}
+              </div>
+            ))}
           </div>
         ) : rows !== null ? (
           <p className="lead">아직 기록이 없어요.</p>
@@ -289,9 +303,21 @@ function RecordCard({ row, prev }: { row: Row; prev?: Row }) {
             </p>
           ) : null}
         </div>
-        <Link href={`/measurements/${row._id}`} className="pill">
-          자세히 →
-        </Link>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {row.imageUrl ? (
+            <a
+              className="pill"
+              href={String(row.imageUrl)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              원본
+            </a>
+          ) : null}
+          <Link href={`/measurements/${row._id}`} className="pill">
+            자세히 →
+          </Link>
+        </div>
       </div>
 
       <div

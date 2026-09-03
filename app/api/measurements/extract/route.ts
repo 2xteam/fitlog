@@ -81,6 +81,7 @@ export async function POST(req: Request) {
   // 결과지 원본을 보관한다. 추출 오류를 나중에 확인하거나,
   // etc 항목을 정식 필드로 승격할 때 다시 뽑기 위해서다.
   let imageUrl: string | null = null;
+  let imageError: string | null = null;
   try {
     const ext = mimeType.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
     const key = `fitlog/${userId ?? "unknown"}/${Date.now()}-${crypto
@@ -96,8 +97,11 @@ export async function POST(req: Request) {
     );
     imageUrl = `${getR2PublicUrl().replace(/\/$/, "")}/${key}`;
   } catch (e) {
-    // 보관에 실패해도 추출 결과는 돌려준다
+    // 보관에 실패해도 추출 결과는 돌려준다.
+    // 다만 **조용히 넘어가지 않는다** — 원본이 없는 기록이 쌓이면
+    // 나중에 추출을 다시 돌릴 수도, 값을 대조할 수도 없다.
     console.error("[measurements/extract] R2", e);
+    imageError = "원본 사진을 보관하지 못했어요. 저장 후 수정 화면에서 다시 첨부할 수 있어요.";
   }
 
   return NextResponse.json({
@@ -105,6 +109,7 @@ export async function POST(req: Request) {
     data: { ...data, derived },
     warnings,
     imageUrl,
+    imageError,
     model: VISION_MODEL,
   });
 }

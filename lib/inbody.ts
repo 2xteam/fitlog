@@ -103,6 +103,43 @@ export const FIELDS: FieldDef[] = [
 /** 그래프 기본 3종 */
 export const PRIMARY_FIELDS = FIELDS.filter((f) => f.primary);
 
+/**
+ * 결과지의 분석 구획.
+ *
+ * 항목이 36개라 한 줄로 늘어놓으면 무엇을 보는지 알기 어렵다.
+ * 경로의 첫 마디가 곧 구획이므로 따로 표시를 달지 않고 여기서 묶는다.
+ */
+export const GROUP_LABELS: Record<string, string> = {
+  composition: "체성분분석",
+  muscleFat: "골격근·지방분석",
+  obesity: "비만분석",
+  evaluation: "평가",
+  control: "체중조절",
+  research: "연구항목",
+  derived: "계산 지표",
+};
+
+/** 결과지에 인쇄되지 않고 앱이 계산해 채우는 구획 */
+export const DERIVED_GROUPS = ["derived"];
+
+export function groupOf(path: string): string {
+  return path.split(".")[0] ?? "";
+}
+
+export type FieldGroup = { key: string; label: string; fields: FieldDef[] };
+
+/** 주어진 필드들을 구획 순서대로 묶는다. 빈 구획은 빼고 돌려준다. */
+export function groupFields(fields: FieldDef[]): FieldGroup[] {
+  const order = Object.keys(GROUP_LABELS);
+  return order
+    .map((key) => ({
+      key,
+      label: GROUP_LABELS[key] ?? key,
+      fields: fields.filter((f) => groupOf(f.path) === key),
+    }))
+    .filter((g) => g.fields.length > 0);
+}
+
 export function findField(path: string): FieldDef | undefined {
   return FIELDS.find((f) => f.path === path);
 }
