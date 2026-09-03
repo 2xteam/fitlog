@@ -1,12 +1,9 @@
 import type { CSSProperties } from "react";
 
-/** 앱 하단 공통 푸터 — 서비스 설명과 myjane 워드마크 링크 */
+/** 앱 하단 공통 푸터 — myjane 워드마크와 저작권 한 줄만 둔다 */
 export function SiteFooter() {
   return (
     <footer style={wrapStyle}>
-      <p style={descStyle}>
-        인바디 결과지를 찍어 기록하고, 몸의 변화를 한눈에 보는 기록 도구입니다.
-      </p>
       <p style={lineStyle}>
         <a
           href="https://www.myjane.co.kr"
@@ -30,16 +27,8 @@ const wrapStyle: CSSProperties = {
   textAlign: "left",
 };
 
-const descStyle: CSSProperties = {
-  margin: 0,
-  fontSize: "0.8rem",
-  color: "var(--text-muted)",
-  wordBreak: "keep-all",
-  lineHeight: 1.6,
-};
-
 const lineStyle: CSSProperties = {
-  margin: "0.75rem 0 0",
+  margin: 0,
 };
 
 const copyStyle: CSSProperties = {

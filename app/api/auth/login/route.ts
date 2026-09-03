@@ -34,6 +34,8 @@ export async function POST(req: Request) {
     const candidates = await User.find({ phone }).exec();
     const matches = [];
     for (const u of candidates) {
+      // 이메일로만 가입한 계정은 PIN이 없다 → 이 경로로는 로그인하지 않는다
+      if (!u.pin) continue;
       if (await bcrypt.compare(pin, u.pin)) {
         matches.push(u);
       }

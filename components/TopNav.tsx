@@ -22,6 +22,7 @@ const subNav = [
 const otherApps = [
   { name: "SnapWord", iconUrl: "/snapword-link-icon.png", href: "https://snapword.myjane.co.kr/home" },
   { name: "SnapNote", iconUrl: "/snapnote-link-icon.png", href: "https://snapnote.myjane.co.kr/home" },
+  { name: "2hbk", iconUrl: "/2hbk-link-icon.png", href: "https://2hbk.myjane.co.kr/home" },
 ];
 
 export function TopNav() {
