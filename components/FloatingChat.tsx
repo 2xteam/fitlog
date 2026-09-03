@@ -589,32 +589,36 @@ function FlexFabIcon() {
         strokeWidth="1.8"
       />
 
-      {/* 팔은 선화(아웃라인)로 그린다 — 주먹 · 엄지 · 아래팔 · 바깥 윤곽 · 이두 · 주름 */}
-      <g
-        className="fab-arm"
-        fill="none"
-        stroke={fg}
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M28 20 q-3 -13 8 -13 q10 0 8 13" />
-        <path d="M28 20 q-5 1 -4 4 q1 4 7 3" />
-        <path d="M34 23 q3 7 2 13" />
-        <path d="M44 20 q6 11 5 22 q-1 9 -8 11 q-9 3 -21 1" />
+      {/* 팔은 선화(아웃라인)로 그린다 — 주먹 · 엄지 · 아래팔 · 바깥 윤곽 · 이두 · 주름.
+          크기 조정은 **바깥 그룹**에서 한다. `fab-arm`의 CSS 애니메이션 transform 이
+          같은 요소의 transform 속성을 덮어쓰기 때문이다. */}
+      <g transform="translate(6.4 6.4) scale(0.8)">
+        <g
+          className="fab-arm"
+          fill="none"
+          stroke={fg}
+          strokeWidth="2.9"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M28 20 q-3 -13 8 -13 q10 0 8 13" />
+          <path d="M28 20 q-5 1 -4 4 q1 4 7 3" />
+          <path d="M34 23 q3 7 2 13" />
+          <path d="M44 20 q6 11 5 22 q-1 9 -8 11 q-9 3 -21 1" />
 
-        {/* 이두 — 여기만 부푼다 */}
-        <g className="fab-bicep">
-          <path d="M9 38 q10 -12 23 -6 q4 2 5 5" />
-          <path d="M20 45 q11 5 20 1" />
+          {/* 이두 — 여기만 부푼다 */}
+          <g className="fab-bicep">
+            <path d="M9 38 q10 -12 23 -6 q4 2 5 5" />
+            <path d="M20 45 q11 5 20 1" />
+          </g>
         </g>
       </g>
 
       {/* 불끈 순간의 스파크 */}
       <g className="fab-spark" stroke={fg} strokeWidth="2.4" strokeLinecap="round">
-        <path d="M13 25 L9 21" />
-        <path d="M31 6 L30 1" />
-        <path d="M52 40 L57 39" />
+        <path d="M15 25 L11 21" />
+        <path d="M31 9 L30 4" />
+        <path d="M49 40 L54 39" />
       </g>
     </svg>
   );
