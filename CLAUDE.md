@@ -24,6 +24,7 @@
 
 ## 이 프로젝트 메모
 
+- 관리 화면은 **포털**에 있다(`www.myjane.co.kr/admin`). 여기엔 `/api/admin/*` 만 둔다 → `30-Patterns/통합 admin.md`
 - 인바디 추출은 `30-Patterns/OpenAI Vision 추출 패턴.md`
 - 데이터 모델 설계 원칙(표준범위 저장 · `etc` 보관 · 날짜당 1건)은 프로젝트 노트에 정리되어 있다
 - 회원은 `user` DB 공유. `heightCm`/`gender`/`birthYear`는 FitLog 전용 필드
