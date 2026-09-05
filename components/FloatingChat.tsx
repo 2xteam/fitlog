@@ -33,6 +33,8 @@ export function FloatingChat() {
   const [tokenBalance, setTokenBalance] = useState<number | null>(null);
   /** 이어서 물어볼 것 — 서버가 이 사용자 기록에서 뽑아준다 */
   const [chips, setChips] = useState<string[]>([]);
+  /** 모델이 되물었을 때 — 사용자가 고를 때까지 여기 머문다 */
+  const [ask, setAsk] = useState<{ callId: string; question: string; options: string[] } | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const pendingMsg = useRef<string | null>(null);
   const cacheWord = useRef<string | null>(null);
@@ -165,10 +167,12 @@ export function FloatingChat() {
     setHistoryOpen(false);
   };
 
-  const sendText = useCallback(async (textOverride?: string) => {
+  const sendText = useCallback(async (textOverride?: string, answerTo?: string) => {
     const text = textOverride ?? input.trim();
     if (!session || !text) return;
     if (!textOverride) setInput("");
+    // 새 질문을 보내면 앞의 되묻기는 접는다
+    setAsk(null);
 
     let threadId = active;
 
@@ -223,7 +227,12 @@ export function FloatingChat() {
       const res = await fetch(`/api/chat/threads/${threadId}/stream`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ phone: session.phone, userId: session.id, text }),
+        body: JSON.stringify({
+          phone: session.phone,
+          userId: session.id,
+          text,
+          ...(answerTo ? { answerTo } : {}),
+        }),
       });
 
       if (!res.ok || !res.body) {
@@ -243,6 +252,7 @@ export function FloatingChat() {
       let streamed = "";
       let threadTitle: string | null = null;
       let failed: string | null = null;
+      let askedBack = false;
 
       while (true) {
         const { value, done } = await reader.read();
@@ -271,7 +281,16 @@ export function FloatingChat() {
             setMessages((m) =>
               m.map((x) => (x._id === pendingAiId ? { ...x, content: streamed } : x)),
             );
+          } else if (ev.type === "ask") {
+            // 모델이 되물었다. 본문 대신 선택지를 띄우고 이번 턴은 여기서 끝난다
+            setStage(null);
+            setAsk({
+              callId: String(ev.callId ?? ""),
+              question: String(ev.question ?? ""),
+              options: Array.isArray(ev.options) ? (ev.options as string[]) : [],
+            });
           } else if (ev.type === "done") {
+            askedBack = Boolean(ev.asked);
             threadTitle = (ev.threadTitle as string | null) ?? null;
             if (typeof ev.assistantText === "string" && ev.assistantText) {
               streamed = ev.assistantText;
@@ -298,6 +317,12 @@ export function FloatingChat() {
         setThreads((prev) =>
           prev.map((t) => (t._id === threadId ? { ...t, title: threadTitle! } : t)),
         );
+      }
+
+      // 되묻기로 끝난 턴은 아직 답이 없다. 빈 말풍선을 지우고 선택지만 남긴다
+      if (askedBack) {
+        setMessages((m) => m.filter((x) => x._id !== pendingAiId));
+        return;
       }
 
       // 저장된 이력으로 맞춘다 (임시 id를 실제 id로 바꾸기 위해)
@@ -472,7 +497,12 @@ export function FloatingChat() {
                 전에는 첫 화면에만 칩이 있어서 대화가 시작되면 사라졌다 —
                 그 뒤로는 무엇을 더 물어도 되는지 알 수 없었다.
               */}
-              {messages.length > 0 && !busy && chips.length > 0 ? (
+              {ask ? (
+                <AskUser
+                  ask={ask}
+                  onPick={(choice) => void sendText(choice, ask.callId)}
+                />
+              ) : messages.length > 0 && !busy && chips.length > 0 ? (
                 <FollowUps chips={chips} onPick={(q) => void sendText(q)} />
               ) : null}
 
@@ -705,6 +735,70 @@ function ChatSkeleton() {
  * 여기는 방금 읽은 답에 이어 붙이는 것이다. 그래서 말풍선처럼 크게 두지 않고
  * 목록 끝에 조용히 놓는다.
  */
+
+/**
+ * 모델이 되물었을 때 뜨는 선택지.
+ *
+ * OpenAI API에 되묻기 전용 기능은 없다. 함수 도구(`ask_user`)를 모델이 "부르면"
+ * 여기서 버튼으로 그리고, 고른 값을 도구 결과로 되돌려 대화를 잇는다.
+ * → `lib/askUserTool.ts`
+ *
+ * 이어질 질문(FollowUps)과 다르게 **답을 기다리는 상태**라 눈에 띄게 둔다.
+ * 그냥 타이핑해서 답해도 되지만, 그건 도구 결과가 아니라 새 질문이 된다.
+ */
+function AskUser({
+  ask,
+  onPick,
+}: {
+  ask: { callId: string; question: string; options: string[] };
+  onPick: (choice: string) => void;
+}) {
+  return (
+    <div style={{ display: "flex", width: "100%", justifyContent: "flex-start", flexShrink: 0 }}>
+      <div
+        style={{
+          maxWidth: "92%",
+          padding: "0.6rem 0.75rem",
+          borderRadius: "10px 10px 10px 3px",
+          background: "var(--bg-elevated)",
+          border: "1px solid var(--accent)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 10.5,
+            fontWeight: 700,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: "var(--accent)",
+          }}
+        >
+          하나만 알려주세요
+        </span>
+
+        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, fontWeight: 600 }}>
+          {ask.question}
+        </p>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 5, alignItems: "flex-start" }}>
+          {ask.options.map((o) => (
+            <button key={o} type="button" className="chat-suggestion" onClick={() => onPick(o)}>
+              {o}
+            </button>
+          ))}
+        </div>
+
+        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+          직접 입력해서 답해도 돼요.
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function FollowUps({
   chips,
   onPick,

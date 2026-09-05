@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { buildChatRagContext } from "@/lib/chatRagDocuments";
+import { ASK_USER_POLICY } from "@/lib/askUserTool";
 import { createOpenAiResponse, type ResponsesCreateUsage } from "@/lib/openAiConversations";
 
 const CHAT_INSTRUCTIONS = `당신은 FitLog 앱의 "AI Fit 상담사"입니다.
@@ -64,6 +65,15 @@ function mergeInstructions(userText: string, measurementContext?: string): strin
   if (measurementContext?.trim()) {
     parts.push("", "──── 사용자 기록 (매 턴 최신값) ────", measurementContext.trim());
   }
+
+  /*
+    되묻기 정책은 **맨 뒤**에 둔다.
+    앞에 붙이면 참고 문서와 기록 수천 자에 묻혀서 모델이 그냥 답해 버린다.
+    참고 문서에 이미 조건별 설명이 들어 있어서 더 그렇다 — 답이 눈앞에 있으면
+    굳이 되묻지 않는다. 그래서 그 문서보다 뒤에 두고, 문서보다 우선한다고 못 박는다.
+  */
+  parts.push("", "──── 답하기 전에 확인 ────", ASK_USER_POLICY);
+
   return parts.join("\n");
 }
 

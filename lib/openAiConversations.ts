@@ -139,21 +139,49 @@ export async function createOpenAiResponse(params: {
  * `store: true`라 대화 아이템은 그대로 Conversation에 남는다. 이력 조회 방식은
  * 바뀌지 않는다.
  */
+export type StreamEvent =
+  | { type: "delta"; text: string }
+  /** 모델이 되묻기를 택했다 — 답변 대신 선택지를 준다 */
+  | { type: "ask"; callId: string; args: string }
+  | {
+      type: "done";
+      id: string;
+      text: string;
+      usage: ResponsesCreateUsage | null;
+    };
+
 export async function* streamOpenAiResponse(params: {
   model: string;
   instructions: string;
-  userMessage: string;
+  /** 사용자 메시지. 되묻기에 답하는 턴이면 비우고 `toolOutput`을 채운다 */
+  userMessage?: string;
   conversation: string;
-}): AsyncGenerator<
-  { type: "delta"; text: string } | { type: "done"; id: string; text: string; usage: ResponsesCreateUsage | null }
-> {
+  tools?: unknown[];
+  /** 앞 턴의 되묻기에 대한 사용자의 선택 */
+  toolOutput?: { callId: string; output: string };
+}): AsyncGenerator<StreamEvent> {
   const client = getClient();
+
+  /*
+    되묻기에 답하는 턴은 사용자 메시지가 아니라 `function_call_output`을 넣는다.
+    앞 턴의 도구 호출은 conversation에 이미 저장돼 있어서 call_id로 이어붙는다.
+  */
+  const input = params.toolOutput
+    ? [
+        {
+          type: "function_call_output" as const,
+          call_id: params.toolOutput.callId,
+          output: params.toolOutput.output,
+        },
+      ]
+    : [{ role: "user" as const, content: (params.userMessage ?? "").trim() }];
 
   const stream = await client.responses.create({
     model: params.model,
     instructions: params.instructions,
-    input: [{ role: "user", content: params.userMessage.trim() }],
+    input: input as never,
     conversation: params.conversation,
+    tools: (params.tools ?? []) as never,
     store: true,
     stream: true,
   });
@@ -168,6 +196,19 @@ export async function* streamOpenAiResponse(params: {
     if (e.type === "response.output_text.delta" && typeof e.delta === "string") {
       full += e.delta;
       yield { type: "delta", text: e.delta };
+      continue;
+    }
+
+    // 도구 호출이 끝나면 인자가 다 모인다. 조각으로 흘려보낼 이유가 없어 한 번에 준다
+    if (e.type === "response.output_item.done") {
+      const item = e.item as Record<string, unknown> | undefined;
+      if (item?.type === "function_call" && item.name === "ask_user") {
+        yield {
+          type: "ask",
+          callId: String(item.call_id ?? ""),
+          args: String(item.arguments ?? "{}"),
+        };
+      }
       continue;
     }
 

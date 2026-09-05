@@ -9,6 +9,7 @@ import { ChatThread, type ChatThreadDocument } from "@/models/ChatThread";
 import { getUserModel } from "@/models/User";
 import { deductTokens } from "@/lib/useToken";
 import { buildBloodContext, buildMeasurementContext } from "@/lib/measurementContext";
+import { ASK_USER_TOOL, parseAskUser } from "@/lib/askUserTool";
 
 /**
  * 상담 한 턴 — **스트리밍**.
@@ -64,7 +65,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ threadId: stri
   }
 
   const { threadId } = await ctx.params;
-  let body: { phone?: string; userId?: string; text?: string };
+  let body: { phone?: string; userId?: string; text?: string; answerTo?: string };
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -74,7 +75,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ threadId: stri
   const phone = typeof body.phone === "string" ? body.phone : "";
   const userId = typeof body.userId === "string" ? body.userId.trim() : "";
   const text = typeof body.text === "string" ? body.text.trim() : "";
-  if (!text) {
+  /* 되묻기에 답하는 턴 — 사용자 메시지 대신 도구 결과를 넣는다 */
+  const answerTo = typeof body.answerTo === "string" ? body.answerTo.trim() : "";
+  if (!text && !answerTo) {
     return NextResponse.json({ ok: false, error: "text가 필요합니다." }, { status: 400 });
   }
 
@@ -129,14 +132,25 @@ export async function POST(req: Request, ctx: { params: Promise<{ threadId: stri
         let responseId = "";
         let usage: { input_tokens: number; output_tokens: number; total_tokens: number } | null = null;
 
+        let asked = false;
+
         for await (const ev of streamOpenAiResponse({
           model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
           instructions,
-          userMessage: text,
+          userMessage: answerTo ? undefined : text,
           conversation: convId,
+          tools: [ASK_USER_TOOL],
+          toolOutput: answerTo ? { callId: answerTo, output: text } : undefined,
         })) {
           if (ev.type === "delta") {
             send({ type: "delta", text: ev.text });
+          } else if (ev.type === "ask") {
+            // 모델이 답 대신 되묻기를 택했다. 선택지를 보내고 이번 턴은 여기서 끝난다
+            const payload = parseAskUser(ev.args);
+            if (payload) {
+              asked = true;
+              send({ type: "ask", callId: ev.callId, ...payload });
+            }
           } else {
             assistantText = ev.text;
             responseId = ev.id;
@@ -144,7 +158,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ threadId: stri
           }
         }
 
-        if (!assistantText) throw new Error("응답 본문이 비어 있습니다.");
+        // 되묻기로 끝난 턴은 본문이 비어 있는 게 정상이다
+        if (!assistantText && !asked) throw new Error("응답 본문이 비어 있습니다.");
 
         if (usage) {
           thread.totalInputTokens = (thread.totalInputTokens ?? 0) + usage.input_tokens;
@@ -153,10 +168,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ threadId: stri
         }
         thread.updatedAt = new Date();
 
-        // 제목은 본문을 다 보낸 뒤에 만든다 — 답을 읽는 동안 기다리지 않게
+        // 제목은 본문을 다 보낸 뒤에 만든다 — 답을 읽는 동안 기다리지 않게.
+        // 되묻기로 끝난 턴은 아직 주제를 모르니 다음 턴으로 미룬다
         let threadTitle: string | null = null;
         const currentTitle = (thread.title ?? "").trim();
-        if (!currentTitle || currentTitle === "새 대화") {
+        if (!asked && (!currentTitle || currentTitle === "새 대화")) {
           const subject = await generateChatSubjectLine(text);
           if (subject) {
             thread.title = subject;
@@ -168,6 +184,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ threadId: stri
 
         send({
           type: "done",
+          asked,
           assistantText,
           openAiResponseId: responseId,
           threadTitle,
