@@ -26,9 +26,12 @@
 
 - 관리 화면은 **포털**에 있다(`www.myjane.co.kr/admin`). 여기엔 `/api/admin/*` 만 둔다 → `30-Patterns/통합 admin.md`
 - 인바디 추출은 `30-Patterns/OpenAI Vision 추출 패턴.md`
-- 피검사(Blood) 지식·근거 등급·인바디 교차는 `30-Patterns/피검사 지식베이스.md`
-- 피검사 RAG 청크는 **손으로 쓰지 않는다** — `lib/bloodRagChunks.ts`가 카탈로그에서 생성한다
-- 권고(`lib/bloodGuidance.ts`)는 `evidence` 등급 없이 추가하지 않는다
+- 피검사(Blood) 지식은 `30-Patterns/피검사 지식베이스.md`, 인바디는 `30-Patterns/인바디 지식베이스.md`
+- **인바디 값에는 BIA 기준을 쓴다.** DXA 기준(AWGS 여성 5.4)을 갖다 대면 근감소를 놓친다
+- RAG 주제 청크는 **손으로 쓰지 않는다** — `lib/{inbody,blood}RagChunks.ts`가 카탈로그에서 생성한다
+- 권고는 `evidence` 등급과 `basis` 없이 추가하지 않는다 (`lib/evidence.ts`)
+- 상담은 스트리밍(`/api/chat/threads/[id]/stream`). 지침은 `buildChatInstructions`로 두 경로가 공유한다
+- 개발 서버가 켜진 채 빌드하려면 `NEXT_DIST_DIR=.next-build`. 끝나면 `git checkout tsconfig.json next-env.d.ts`
 - 데이터 모델 설계 원칙(표준범위 저장 · `etc` 보관 · 날짜당 1건)은 프로젝트 노트에 정리되어 있다
 - 회원은 `user` DB 공유. `heightCm`/`gender`/`birthYear`는 FitLog 전용 필드
 

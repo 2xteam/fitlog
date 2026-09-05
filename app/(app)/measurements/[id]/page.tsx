@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Sheet } from "@/components/Sheet";
+import { NoteEditor } from "@/components/RecordNote";
 import { loadSession, type SessionUser } from "@/lib/session";
 import {
   FIELDS,
@@ -143,6 +144,21 @@ export default function MeasurementDetailPage() {
           </div>
         </Sheet>
       ) : null}
+
+      <Sheet tone="tint" eyebrow="NOTE" headline="메모">
+        <p className="lead" style={{ marginTop: 8 }}>
+          그날의 측정 조건이나 컨디션을 적어두면 다음에 값을 읽을 때 도움이 돼요.
+        </p>
+        <div style={{ marginTop: 16 }}>
+          {session ? (
+            <NoteEditor
+              apiPath={`/api/measurements/${row._id}`}
+              userId={session.id}
+              initial={(row.note as string | null) ?? null}
+            />
+          ) : null}
+        </div>
+      </Sheet>
 
       <Sheet eyebrow="ORIGINAL" headline="원본 결과지">
         {imageUrl ? (

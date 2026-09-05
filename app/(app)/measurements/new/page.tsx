@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Sheet } from "@/components/Sheet";
+import { NoteField } from "@/components/RecordNote";
 import { loadSession, type SessionUser } from "@/lib/session";
 import { useProfile } from "@/lib/useProfile";
 import { checkUploadSize, shrinkImageForUpload } from "@/lib/clientImageResize";
@@ -38,6 +39,9 @@ type FailedItem = { fileName: string; error: string };
 
 type Step = "upload" | "review";
 
+/** 결과지에 남기는 메모 — 장마다 따로 둔다 */
+type NoteMap = Record<number, string>;
+
 export default function NewMeasurementPage() {
   const router = useRouter();
   const [session, setSession] = useState<SessionUser | null>(null);
@@ -53,6 +57,8 @@ export default function NewMeasurementPage() {
   const [index, setIndex] = useState(0);
   const [savedCount, setSavedCount] = useState(0);
   const [edited, setEdited] = useState(false);
+  /** 결과지에 남기는 메모 — 여러 장을 올릴 수 있어 장마다 따로 둔다 */
+  const [notes, setNotes] = useState<NoteMap>({});
 
   const fileRef = useRef<HTMLInputElement | null>(null);
 
@@ -63,6 +69,7 @@ export default function NewMeasurementPage() {
   const [quickWeight, setQuickWeight] = useState("");
   const [quickPbf, setQuickPbf] = useState("");
   const [quickSmm, setQuickSmm] = useState("");
+  const [quickNote, setQuickNote] = useState("");
   const [quickMsg, setQuickMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -260,6 +267,7 @@ export default function NewMeasurementPage() {
           userId: session.id,
           measuredAt: `${quickDate} 09:00`,
           data,
+          note: quickNote.trim() || null,
           source: "manual",
         }),
       });
@@ -290,6 +298,7 @@ export default function NewMeasurementPage() {
           data: current.data,
           imageUrl: current.imageUrl,
           model: current.model,
+          note: (notes[index] ?? "").trim() || null,
           editedByUser: edited,
         }),
       });
@@ -501,6 +510,10 @@ export default function NewMeasurementPage() {
               />
             </div>
 
+            <div style={{ marginBottom: 18 }}>
+              <NoteField value={quickNote} onChange={setQuickNote} />
+            </div>
+
             <button
               type="button"
               className="btn btn--primary btn--block"
@@ -606,6 +619,13 @@ export default function NewMeasurementPage() {
           <p className="field-hint">
             같은 날짜 기록이 이미 있으면 새 값으로 교체돼요.
           </p>
+        </div>
+
+        <div style={{ marginTop: 20 }}>
+          <NoteField
+            value={notes[index] ?? ""}
+            onChange={(v) => setNotes((prev) => ({ ...prev, [index]: v }))}
+          />
         </div>
       </Sheet>
 

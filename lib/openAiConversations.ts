@@ -128,3 +128,71 @@ export async function createOpenAiResponse(params: {
 
   return { id, output_text, usage };
 }
+
+/**
+ * 스트리밍 응답 — 토큰이 만들어지는 대로 흘려보낸다.
+ *
+ * 한 번에 받으면 사용자는 20~40초 동안 빈 화면을 본다. 응답이 길수록 더 기다린다.
+ * 스트리밍은 그 시간을 없애지는 못하지만 **기다리는 성질을 바꾼다** — 답이 쌓이는
+ * 것을 보면서 읽기 시작할 수 있다.
+ *
+ * `store: true`라 대화 아이템은 그대로 Conversation에 남는다. 이력 조회 방식은
+ * 바뀌지 않는다.
+ */
+export async function* streamOpenAiResponse(params: {
+  model: string;
+  instructions: string;
+  userMessage: string;
+  conversation: string;
+}): AsyncGenerator<
+  { type: "delta"; text: string } | { type: "done"; id: string; text: string; usage: ResponsesCreateUsage | null }
+> {
+  const client = getClient();
+
+  const stream = await client.responses.create({
+    model: params.model,
+    instructions: params.instructions,
+    input: [{ role: "user", content: params.userMessage.trim() }],
+    conversation: params.conversation,
+    store: true,
+    stream: true,
+  });
+
+  let full = "";
+  let id = "";
+  let usage: ResponsesCreateUsage | null = null;
+
+  for await (const event of stream) {
+    const e = event as unknown as Record<string, unknown>;
+
+    if (e.type === "response.output_text.delta" && typeof e.delta === "string") {
+      full += e.delta;
+      yield { type: "delta", text: e.delta };
+      continue;
+    }
+
+    // 완료 이벤트에서 id와 사용량을 챙긴다
+    if (e.type === "response.completed" || e.type === "response.incomplete") {
+      const r = e.response as Record<string, unknown> | undefined;
+      if (r) {
+        if (typeof r.id === "string") id = r.id;
+        const u = r.usage as Record<string, number> | undefined;
+        if (u) {
+          const input_tokens = u.input_tokens ?? 0;
+          const output_tokens = u.output_tokens ?? 0;
+          const total_tokens = u.total_tokens ?? input_tokens + output_tokens;
+          if (input_tokens || output_tokens || total_tokens) {
+            usage = { input_tokens, output_tokens, total_tokens };
+          }
+        }
+        // 델타를 놓쳤을 때를 대비해 최종 본문으로 보정한다
+        const outText = r.output_text;
+        if (typeof outText === "string" && outText.trim() && !full.trim()) {
+          full = outText;
+        }
+      }
+    }
+  }
+
+  yield { type: "done", id, text: full.trim(), usage };
+}

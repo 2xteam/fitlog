@@ -1,71 +1,29 @@
 /**
- * 수치가 벗어났을 때 무엇을 해볼 수 있는지 — **권고 데이터**.
+ * 피검사 수치가 벗어났을 때 무엇을 해볼 수 있는지 — **권고 데이터**.
  *
- * ⚠️ 이 파일의 규칙 하나: **근거 등급(`evidence`) 없이는 항목을 추가하지 않는다.**
+ * ⚠️ 규칙 하나: **근거 등급(`evidence`) 없이는 항목을 추가하지 않는다.** → `lib/evidence.ts`
  *
- * 운동·식습관·영양제 추천을 데이터로 만들 때 가장 큰 위험은 근거가 센 조언과
- * 약한 조언이 같은 얼굴로 화면에 나오는 것이다. 사용자는 둘을 구분할 방법이 없고,
- * 앱은 자신 있게 틀린 말을 하게 된다. 그래서 등급을 필수 필드로 두고,
+ * 근거가 센 조언과 약한 조언이 같은 얼굴로 화면에 나오면 사용자는 둘을 구분할 방법이
+ * 없고, 앱은 자신 있게 틀린 말을 하게 된다. 그래서 등급을 필수 필드로 두고,
  * `basis`(무엇을 근거로 이 말을 하는가)를 화면에서 펼쳐볼 수 있게 한다.
- *
- * 등급
- *   A 강함        지침의 강한 권고 또는 일관된 무작위배정 시험
- *   B 보통        지침의 조건부 권고 또는 메타분석 수준
- *   C 약함        흔히 하는 말이지만 시험에서 확인되지 않음
- *   D 권하지 않음  지침이 이득 없음 또는 해로움으로 분류
  *
  * 등급 D도 **지운다고 없어지지 않아서** 남긴다. "중성지방 높으면 오메가3"는
  * 사용자가 이미 어디선가 듣고 온다. 앱이 침묵하면 그 말이 그대로 남는다.
- * 지침이 뭐라고 하는지 보여주는 편이 낫다.
  *
- * → 함께 볼 것: `lib/bloodCatalog.ts` · `docs` 볼트 `30-Patterns/피검사 지식베이스.md`
+ * → 인바디 쪽은 `lib/inbodyGuidance.ts` 에 같은 모양으로 있다.
  */
 
-import { SOURCES, type Source } from "@/lib/bloodCatalog";
+import { SOURCES } from "@/lib/bloodCatalog";
+import { pickGuidance, type Guidance } from "@/lib/evidence";
 
-export type EvidenceGrade = "A" | "B" | "C" | "D";
-
-export const EVIDENCE_LABELS: Record<EvidenceGrade, string> = {
-  A: "근거 강함",
-  B: "근거 보통",
-  C: "근거 약함",
-  D: "권하지 않음",
-};
-
-export const EVIDENCE_MEANING: Record<EvidenceGrade, string> = {
-  A: "진료지침이 강하게 권하거나, 무작위배정 시험에서 일관되게 확인된 내용이에요.",
-  B: "진료지침의 조건부 권고이거나, 여러 연구를 모은 메타분석 수준의 근거예요.",
-  C: "흔히 하는 말이지만 시험에서는 확인되지 않았어요. 해로울 일은 없지만 기대만큼 듣지 않을 수 있어요.",
-  D: "진료지침이 이득이 없다고 분류했어요. 권하지 않는 이유까지 함께 읽어보세요.",
-};
-
-export type GuidanceKind = "exercise" | "diet" | "supplement" | "clinic";
-
-export const KIND_LABELS: Record<GuidanceKind, string> = {
-  exercise: "운동",
-  diet: "식습관",
-  supplement: "영양제",
-  clinic: "진료",
-};
-
-export type Guidance = {
-  /** 대상 항목 코드. "*" 는 모든 항목 공통 */
-  analyte: string;
-  direction: "high" | "low";
-  kind: GuidanceKind;
-  headline: string;
-  detail: string;
-  /** 숫자로 말할 수 있는 효과. 있으면 화면에 그대로 보여준다 */
-  effect?: string;
-  evidence: EvidenceGrade;
-  source: Source;
-  /**
-   * **펼쳐보기에 들어가는 내용.**
-   * 이 조언이 어떤 데이터에서 나왔는지 — 연구 설계, 대상, 무엇이 측정됐는지,
-   * 그리고 한계까지. 신뢰는 결론이 아니라 출처를 보여줄 때 생긴다.
-   */
-  basis: string;
-};
+export type { Guidance } from "@/lib/evidence";
+export {
+  EVIDENCE_LABELS,
+  EVIDENCE_MEANING,
+  KIND_LABELS,
+  type EvidenceGrade,
+  type GuidanceKind,
+} from "@/lib/evidence";
 
 export const GUIDANCE: Guidance[] = [
   /* ── ALT / 간 ─────────────────────────────────────────── */
@@ -536,6 +494,120 @@ export const GUIDANCE: Guidance[] = [
       "총칼슘 중 약 40~45%가 알부민에 결합해 있고, 실제로 작용하는 것은 결합하지 않은 이온화 칼슘입니다. 그래서 알부민이 낮으면 총칼슘이 낮게 나오지만 이온화 칼슘은 정상일 수 있고, 반대도 성립합니다.\n\n임상에서 보정식(알부민 1 g/dL 차이당 칼슘 0.8 mg/dL)을 쓰거나 이온화 칼슘을 직접 측정합니다.\n\n이 앱은 보정 계산을 하지 않아요 — 결과지의 알부민 값과 함께 보여드리고, 판단은 진료에서 하시도록 해요.",
   },
 
+  /* ── 나머지 간 항목 ───────────────────────────────────── */
+  {
+    analyte: "ALP",
+    direction: "high",
+    kind: "clinic",
+    headline: "담도 쪽인지 뼈 쪽인지 r-GTP로 갈라요",
+    detail:
+      "ALP는 담도와 뼈 양쪽에서 나와요. r-GTP가 함께 올랐으면 담도 쪽, ALP만 올랐으면 뼈 쪽을 먼저 봐요.",
+    evidence: "A",
+    source: SOURCES.eone,
+    basis:
+      "ALP는 간·담도와 뼈에 모두 분포합니다. r-GTP는 담도계에 있고 뼈에는 없어서, 두 값을 함께 보면 어디서 온 ALP인지 좁힐 수 있어요. 이 조합은 간 검사 해석의 표준 절차예요.\n\n뼈 쪽 원인의 예 — 골절 회복기, 뼈 대사가 활발한 시기, 비타민D 결핍. 그래서 비타민D 값이 함께 있으면 같이 보는 것이 도움이 돼요.\n\n이 앱은 방향까지만 알려드려요. 판단은 진료에서 하세요.",
+  },
+  {
+    analyte: "LDH",
+    direction: "high",
+    kind: "clinic",
+    headline: "어디가 상했는지는 알려주지 않는 항목이에요",
+    detail:
+      "거의 모든 세포에 있어서 LDH 하나로는 뜻이 생기지 않아요. 채혈 과정에서 적혈구가 깨져도 올라가요.",
+    evidence: "B",
+    source: SOURCES.eone,
+    basis:
+      "LDH는 간·심장·근육·적혈구를 비롯해 거의 모든 조직에 있는 효소예요. 그래서 민감하지만 특이적이지 않습니다 — 오르는 것은 잡아내지만 어디서 왔는지는 말해주지 않아요.\n\n흔한 비질환성 원인 — 채혈이나 보관 과정에서 적혈구가 깨지는 용혈. 이 경우 실제 몸 상태와 무관하게 값이 오릅니다.\n\n그래서 LDH만 조금 오른 것은 대개 단독으로 의미를 두지 않고, 다른 항목과 함께 봐요.",
+  },
+  {
+    analyte: "TP",
+    direction: "high",
+    kind: "clinic",
+    headline: "알부민과 함께 봐서 어느 쪽이 늘었는지 나눠요",
+    detail:
+      "총단백은 알부민 + 글로불린이에요. 알부민이 그대로인데 총단백만 높으면 글로불린 쪽이 늘어난 거예요. 탈수로도 올라가요.",
+    evidence: "B",
+    source: SOURCES.eone,
+    basis:
+      "총단백을 알부민과 글로불린으로 나눠 보는 것은 기본 해석 절차예요. 두 성분은 만들어지는 곳과 늘어나는 이유가 다릅니다 — 알부민은 간에서, 글로불린은 상당 부분 면역계에서 만들어져요.\n\n먼저 확인할 것 — 탈수 상태에서는 혈장이 줄어 총단백·알부민이 함께 농축돼 보여요. 인바디 체수분이 낮은 회차라면 그것부터 의심해 보세요.",
+  },
+
+  /* ── 갑상선 ───────────────────────────────────────────── */
+  {
+    analyte: "FT4",
+    direction: "high",
+    kind: "clinic",
+    headline: "TSH와 짝지어 봐야 뜻이 생겨요",
+    detail:
+      "Free T4 하나로는 판단하지 않아요. TSH가 낮으면서 Free T4가 높은지, 둘 다 높은지에 따라 완전히 다른 이야기가 돼요.",
+    evidence: "A",
+    source: SOURCES.eone,
+    basis:
+      "갑상선 기능은 뇌(TSH)와 갑상선(Free T4)의 되먹임 관계로 읽어요. 그래서 두 값의 **조합**이 판단 단위입니다.\n\n- TSH 낮음 + Free T4 높음 → 갑상선 기능 항진 쪽\n- TSH 높음 + Free T4 낮음 → 기능 저하 쪽\n- 둘 다 같은 방향 → 드물지만 뇌하수체 쪽을 봐야 하는 경우\n\n이 앱은 두 값을 갑상선 구획에 나란히 보여드리는 데까지만 해요. 조합의 해석은 진료 영역입니다.",
+  },
+
+  /* ── 적혈구 지수 ──────────────────────────────────────── */
+  {
+    analyte: "MCV",
+    direction: "high",
+    kind: "clinic",
+    headline: "비타민 B12·엽산과 음주를 살펴보는 자리예요",
+    detail:
+      "적혈구가 커진 상태예요. 혈색소가 함께 낮으면 더 확인이 필요해요. 술도 흔한 원인이에요.",
+    evidence: "B",
+    source: SOURCES.eone,
+    basis:
+      "MCV가 높은(대구성) 상태의 대표적 원인은 비타민 B12·엽산 결핍과 알코올입니다. 갑상선기능저하나 일부 약물도 원인이 될 수 있어요.\n\n중요한 것 — MCV 단독으로는 결핍을 확정할 수 없어요. B12·엽산을 직접 재야 알 수 있습니다.\n\n그래서 이 앱은 **B12 영양제를 권하지 않아요.** 결핍이 확인되지 않은 상태에서 보충하면 원인 진단이 늦어질 수 있습니다.",
+  },
+  {
+    analyte: "MCV",
+    direction: "low",
+    kind: "clinic",
+    headline: "철 결핍을 확인해 볼 자리예요",
+    detail:
+      "적혈구가 작아진 상태예요. 철 결핍이 가장 흔하지만, 철분제를 먼저 먹기보다 페리틴 검사로 확인하는 것이 순서예요.",
+    evidence: "B",
+    source: SOURCES.eone,
+    basis:
+      "MCV가 낮은(소구성) 빈혈의 대표 원인은 철 결핍과 지중해빈혈 같은 유전성 혈색소 질환, 그리고 만성질환에 동반된 빈혈이에요.\n\n원인 확인이 먼저인 이유 — 성인에서 새로 생긴 철 결핍은 소화기 출혈 같은 원인을 찾아야 하는 신호일 수 있어요. 철분제를 먼저 먹으면 혈색소는 조금 오르면서 진단이 늦어집니다.",
+  },
+  {
+    analyte: "RDW",
+    direction: "high",
+    kind: "clinic",
+    headline: "적혈구 크기가 섞이기 시작했다는 뜻이에요",
+    detail:
+      "결핍이 생기는 초기에 먼저 움직이는 경우가 있어요. 혈색소·MCV가 아직 정상이어도 함께 봐두면 좋아요.",
+    evidence: "C",
+    source: SOURCES.eone,
+    basis:
+      "RDW는 적혈구 크기의 흩어짐을 나타내요. 새로 만들어지는 적혈구의 크기가 기존과 달라지면 올라가기 때문에, 철·B12·엽산 결핍의 이른 신호로 쓰이기도 합니다.\n\n한계 — RDW 하나로 무엇을 판단하기는 어렵고, 여러 상태에서 비특이적으로 오릅니다. 그래서 등급을 C로 뒀어요. 혈색소·MCV와 함께 보는 참고 지표로 다뤄요.",
+  },
+  {
+    analyte: "EOS",
+    direction: "high",
+    kind: "clinic",
+    headline: "알레르기가 있으면 흔히 올라가요",
+    detail:
+      "비염·천식·아토피가 있으면 높게 나오는 경우가 많아요. 아주 높거나 증상이 함께 있으면 진료에서 확인하세요.",
+    evidence: "B",
+    source: SOURCES.eone,
+    basis:
+      "호산구는 알레르기 반응과 기생충 감염에 관여하는 백혈구예요. 국내에서 가장 흔한 원인은 알레르기 질환입니다.\n\n약간 높은 것은 흔하고 대개 문제가 되지 않아요. 다만 뚜렷하게 높거나(대략 1,500/μL 이상) 발열·체중 감소·피부 발진 같은 증상이 함께 있으면 다른 원인을 찾아야 합니다.\n\n이 앱은 정도를 판단하지 않아요. 알레르기 병력이 있는지 떠올려 보시고, 없다면 진료에서 확인하세요.",
+  },
+  {
+    analyte: "RBC",
+    direction: "high",
+    kind: "diet",
+    headline: "혈색소·적혈구용적률과 함께 움직였는지 보세요",
+    detail:
+      "셋이 함께 높으면 탈수로 농축됐을 가능성이 있어요. 물을 충분히 마신 상태에서 다시 재보세요.",
+    evidence: "B",
+    source: SOURCES.eone,
+    basis:
+      "적혈구 수·혈색소·적혈구용적률은 모두 혈액의 농도를 반영해서, 혈장(물)이 줄면 셋이 함께 올라갑니다.\n\n반복해서 높거나, 흡연·수면무호흡 같은 다른 요인이 있으면 탈수만으로 설명되지 않아요. 그때는 진료에서 확인이 필요합니다.",
+  },
+
   /* ── 모든 항목 공통 ───────────────────────────────────── */
   {
     analyte: "*",
@@ -555,28 +627,15 @@ export const GUIDANCE: Guidance[] = [
  * 조회
  * ──────────────────────────────────────────────────────────── */
 
-/**
- * 한 항목이 어느 쪽으로 벗어났을 때 보여줄 권고를 모은다.
- *
- * 정렬은 근거가 센 것부터. 등급 D는 **맨 뒤로 보내되 지우지 않는다** —
- * 사용자가 이미 들어봤을 조언에 대해 지침이 뭐라고 하는지 보여주는 자리다.
- */
+/** 한 항목이 어느 쪽으로 벗어났을 때 보여줄 권고 (근거가 센 것부터) */
 export function guidanceFor(
   analyteCode: string,
   direction: "high" | "low",
 ): Guidance[] {
-  const rank: Record<EvidenceGrade, number> = { A: 0, B: 1, C: 2, D: 3 };
-  return GUIDANCE.filter(
-    (g) => g.analyte === analyteCode && g.direction === direction,
-  ).sort((a, b) => rank[a.evidence] - rank[b.evidence]);
+  return pickGuidance(GUIDANCE, analyteCode, direction);
 }
 
 /** 항목과 무관하게 항상 붙는 공통 권고 */
 export function commonGuidance(): Guidance[] {
   return GUIDANCE.filter((g) => g.analyte === "*");
-}
-
-/** 영양제 권고만 (기능을 끄고 켤 수 있도록 분리해 둔다) */
-export function isSupplement(g: Guidance): boolean {
-  return g.kind === "supplement";
 }

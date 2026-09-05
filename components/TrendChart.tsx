@@ -211,11 +211,14 @@ export function FieldRow({
   points,
   open,
   onToggle,
+  note,
 }: {
   field: FieldDef;
   points: Point[];
   open: boolean;
   onToggle: () => void;
+  /** 이 항목이 무엇인지 — 펼쳤을 때 그래프 위에 보여준다 */
+  note?: string;
 }) {
   const last = points[points.length - 1];
 
@@ -275,6 +278,19 @@ export function FieldRow({
 
       {open ? (
         <div style={{ padding: "2px 0 20px" }}>
+          {/* 무엇을 보는 항목인지 먼저. 이름만으로는 모르는 항목이 많다 */}
+          {note ? (
+            <p
+              style={{
+                margin: "0 0 12px",
+                fontSize: "0.8rem",
+                lineHeight: 1.7,
+                color: "var(--text-secondary)",
+              }}
+            >
+              {note}
+            </p>
+          ) : null}
           <Chart field={field} points={points} hideLabel />
         </div>
       ) : null}

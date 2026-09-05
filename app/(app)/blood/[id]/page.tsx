@@ -7,6 +7,7 @@ import { Sheet } from "@/components/Sheet";
 import { BloodGauge } from "@/components/BloodGauge";
 import { showToast } from "@/components/Toast";
 import { loadSession } from "@/lib/session";
+import { NoteEditor } from "@/components/RecordNote";
 import { groupByPanel } from "@/lib/bloodCatalog";
 import { type BloodRow } from "@/lib/blood";
 
@@ -160,6 +161,21 @@ export default function BloodDetailPage() {
           </div>
         </Sheet>
       ) : null}
+
+      <Sheet tone="tint" eyebrow="NOTE" headline="메모">
+        <p className="lead" style={{ marginTop: 8 }}>
+          그날의 검사 조건이나 컨디션을 적어두면 다음에 값을 읽을 때 도움이 돼요.
+        </p>
+        <div style={{ marginTop: 16 }}>
+          {userId ? (
+            <NoteEditor
+              apiPath={`/api/blood/${row._id}`}
+              userId={userId}
+              initial={row.note ?? null}
+            />
+          ) : null}
+        </div>
+      </Sheet>
 
       <Sheet eyebrow="MANAGE" headline="이 기록">
         <div style={{ marginTop: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>

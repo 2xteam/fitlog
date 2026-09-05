@@ -25,6 +25,8 @@ export function FloatingChat() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  /** 서버가 지금 무엇을 하고 있는지 — 첫 글자가 오기 전까지 보여준다 */
+  const [stage, setStage] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   /** 스레드를 불러오는 중 — 안내 문구가 깜빡이지 않게 한다 */
   const [hydrating, setHydrating] = useState(false);
@@ -194,31 +196,94 @@ export function FloatingChat() {
       { _id: pendingAiId, role: "assistant", content: "", createdAt: now },
     ]);
     setBusy(true);
+    setStage("records");
     try {
-      const res = await fetch(`/api/chat/threads/${threadId}/messages`, {
+      /*
+        스트리밍으로 받는다. 한 번에 받으면 답이 다 만들어질 때까지 화면이 비어 있고,
+        길수록 더 오래 비어 있다. 여기서는 서버가 실제 진행 단계와 본문 조각을
+        흘려보내고, 받는 대로 그 자리에 쌓는다.
+      */
+      const res = await fetch(`/api/chat/threads/${threadId}/stream`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ phone: session.phone, userId: session.id, text }),
       });
-      const json = (await res.json()) as {
-        ok: boolean;
-        error?: string;
-        threadTitle?: string | null;
-      };
-      if (!res.ok || !json.ok) {
+
+      if (!res.ok || !res.body) {
+        const err = (await res.json().catch(() => null)) as { error?: string } | null;
         setMessages((m) =>
           m.filter((x) => x._id !== pendingUserId && x._id !== pendingAiId).concat([
-            { _id: `err-${Date.now()}`, role: "assistant", content: json.error ?? "오류", createdAt: new Date().toISOString() },
+            { _id: `err-${Date.now()}`, role: "assistant", content: err?.error ?? "오류", createdAt: new Date().toISOString() },
           ]),
         );
         setInput(text);
         return;
       }
-      if (json.threadTitle) {
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      let streamed = "";
+      let threadTitle: string | null = null;
+      let failed: string | null = null;
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+
+        // SSE는 빈 줄로 이벤트를 가른다. 마지막 조각은 아직 덜 왔을 수 있어 남겨둔다
+        const parts = buf.split("\n\n");
+        buf = parts.pop() ?? "";
+
+        for (const part of parts) {
+          const line = part.split("\n").find((l) => l.startsWith("data: "));
+          if (!line) continue;
+          let ev: Record<string, unknown>;
+          try {
+            ev = JSON.parse(line.slice(6)) as Record<string, unknown>;
+          } catch {
+            continue;
+          }
+
+          if (ev.type === "stage") {
+            setStage(String(ev.stage));
+          } else if (ev.type === "delta" && typeof ev.text === "string") {
+            setStage(null);
+            streamed += ev.text;
+            setMessages((m) =>
+              m.map((x) => (x._id === pendingAiId ? { ...x, content: streamed } : x)),
+            );
+          } else if (ev.type === "done") {
+            threadTitle = (ev.threadTitle as string | null) ?? null;
+            if (typeof ev.assistantText === "string" && ev.assistantText) {
+              streamed = ev.assistantText;
+            }
+          } else if (ev.type === "error") {
+            failed = String(ev.error ?? "오류");
+          }
+        }
+      }
+
+      setStage(null);
+
+      if (failed) {
+        setMessages((m) =>
+          m.filter((x) => x._id !== pendingUserId && x._id !== pendingAiId).concat([
+            { _id: `err-${Date.now()}`, role: "assistant", content: failed, createdAt: new Date().toISOString() },
+          ]),
+        );
+        setInput(text);
+        return;
+      }
+
+      if (threadTitle) {
         setThreads((prev) =>
-          prev.map((t) => (t._id === threadId ? { ...t, title: json.threadTitle! } : t)),
+          prev.map((t) => (t._id === threadId ? { ...t, title: threadTitle! } : t)),
         );
       }
+
+      // 저장된 이력으로 맞춘다 (임시 id를 실제 id로 바꾸기 위해)
       await fetchMessages(session, threadId);
       await loadThreads(session);
       await refreshTokenBalance(session);
@@ -227,17 +292,13 @@ export function FloatingChat() {
         const wordToCache = cacheWord.current;
         const promptToCache = text;
         cacheWord.current = null;
-        setMessages((msgs) => {
-          const last = [...msgs].reverse().find((m) => m.role === "assistant" && !m._id.startsWith("local-") && !m._id.startsWith("err-"));
-          if (last?.content) {
-            fetch("/api/ai-cache", {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({ word: wordToCache, prompt: promptToCache, answer: last.content }),
-            }).catch(() => {});
-          }
-          return msgs;
-        });
+        if (streamed) {
+          fetch("/api/ai-cache", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ word: wordToCache, prompt: promptToCache, answer: streamed }),
+          }).catch(() => {});
+        }
       }
     } catch {
       setMessages((m) =>
@@ -248,6 +309,7 @@ export function FloatingChat() {
       setInput(text);
     } finally {
       setBusy(false);
+      setStage(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, active, input, fetchMessages, loadThreads]);
@@ -347,7 +409,9 @@ export function FloatingChat() {
           <div style={{ flex: 1, minHeight: 0, display: "flex", position: "relative", overflow: "hidden" }}>
             {/* Messages */}
             <div style={messagesContainerStyle}>
-              {messages.length === 0 && !hydrating ? (
+              {hydrating && messages.length === 0 ? (
+                <ChatSkeleton />
+              ) : messages.length === 0 ? (
                 <EmptyGuide onPick={(q) => void sendText(q)} />
               ) : (
                 messages.map((m) => {
@@ -365,22 +429,17 @@ export function FloatingChat() {
                           padding: "0.45rem 0.65rem",
                           borderRadius: isUser ? "10px 10px 3px 10px" : "10px 10px 10px 3px",
                           background: isUser ? "var(--accent)" : m._id.startsWith("err-") ? "var(--danger-subtle)" : "var(--bg-elevated)",
-                          color: isUser ? "#fff" : m._id.startsWith("err-") ? "#fca5a5" : "var(--text-primary)",
+                          color: isUser
+                            ? "var(--on-accent)"
+                            : m._id.startsWith("err-")
+                              ? "var(--danger)"
+                              : "var(--text-primary)",
                           fontSize: 13,
                           border: isPendingAi ? "1px dashed var(--text-muted)" : undefined,
                         }}
                       >
-                        {isPendingAi ? (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                            <span className="snapword-chat-wait" style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-                              응답을 작성하는 중입니다…
-                            </span>
-                            <span style={{ display: "flex", alignItems: "center" }} aria-hidden>
-                              <span className="snapword-chat-dot" />
-                              <span className="snapword-chat-dot" />
-                              <span className="snapword-chat-dot" />
-                            </span>
-                          </div>
+                        {isPendingAi && !m.content ? (
+                          <StageIndicator stage={stage} />
                         ) : (
                           <Markdown>{m.content}</Markdown>
                         )}
@@ -517,6 +576,98 @@ const SUGGESTIONS = [
   "내 근육량을 감안하면 신장 수치를 어떻게 봐야 해?",
   "지난 기록과 비교해서 뭐가 달라졌어?",
 ];
+
+
+/**
+ * 대기 표시 — **지어낸 문구를 돌리지 않는다.**
+ *
+ * 서버가 보내는 실제 단계를 그대로 보여준다. 기록을 읽는 데 몇 초, 참고 자료를
+ * 고르는 데 몇 초가 실제로 든다. 그럴듯한 문구를 순환시키는 것과 다른 점은,
+ * **어디서 오래 걸리는지가 눈에 보인다**는 것이다. 사용자에게도, 나중에 고칠
+ * 우리에게도 쓸모가 있다.
+ *
+ * 첫 글자가 도착하면 이 표시는 사라지고 본문이 그 자리에 쌓인다.
+ */
+const STAGE_TEXT: Record<string, string> = {
+  conversation: "대화를 여는 중",
+  records: "내 기록을 읽는 중",
+  knowledge: "참고 자료를 찾는 중",
+  thinking: "답을 정리하는 중",
+};
+
+function StageIndicator({ stage }: { stage: string | null }) {
+  const text = (stage && STAGE_TEXT[stage]) ?? "준비하는 중";
+  const order = ["records", "knowledge", "thinking"];
+  const at = stage ? order.indexOf(stage) : -1;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 150 }}>
+      <span
+        className="snapword-chat-wait"
+        style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 600 }}
+      >
+        {text}…
+      </span>
+
+      {/* 어디까지 왔는지 — 세 마디로 */}
+      <span style={{ display: "flex", gap: 4 }} aria-hidden>
+        {order.map((k, i) => (
+          <span
+            key={k}
+            style={{
+              height: 3,
+              width: 22,
+              borderRadius: 999,
+              background:
+                at >= i && at >= 0 ? "var(--accent)" : "var(--border)",
+              transition: "background .25s ease",
+            }}
+          />
+        ))}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * 첫 로딩 스켈레톤.
+ *
+ * 예전에는 이력을 불러오는 동안 완전히 빈 화면이었다. 흰 화면은 "없다"로 읽히는데
+ * 실제로는 곧 나타난다. 대화 모양의 자리를 미리 잡아두면 그 오해가 없어진다.
+ */
+function ChatSkeleton() {
+  const rows: Array<{ w: number; mine: boolean }> = [
+    { w: 52, mine: true },
+    { w: 88, mine: false },
+    { w: 70, mine: false },
+    { w: 40, mine: true },
+    { w: 80, mine: false },
+  ];
+  return (
+    <div
+      style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}
+      aria-hidden
+    >
+      {rows.map((r, i) => (
+        <div
+          key={i}
+          style={{ display: "flex", justifyContent: r.mine ? "flex-end" : "flex-start" }}
+        >
+          <span
+            className="chat-skeleton"
+            style={{
+              display: "block",
+              width: `${r.w}%`,
+              height: r.mine ? 30 : 52,
+              borderRadius: r.mine ? "10px 10px 3px 10px" : "10px 10px 10px 3px",
+            }}
+          />
+        </div>
+      ))}
+      <span className="sr-only">대화를 불러오는 중</span>
+    </div>
+  );
+}
 
 function EmptyGuide({ onPick }: { onPick: (q: string) => void }) {
   return (
@@ -675,7 +826,7 @@ const fabStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  filter: "drop-shadow(0 3px 10px rgba(0,0,0,0.35))",
+  filter: "drop-shadow(0 4px 14px rgba(38,13,63,.28))",
 };
 
 const panelStyle: CSSProperties = {
@@ -691,18 +842,20 @@ const panelStyle: CSSProperties = {
   background: "var(--bg-card)",
   display: "flex",
   flexDirection: "column",
-  boxShadow: "0 8px 40px rgba(0,0,0,0.4)",
+  // 결쩜사는 순수 검정을 쓰지 않는다. 그림자에도 보라를 섞는다
+  border: "1px solid var(--border)",
+  boxShadow: "0 1px 2px rgba(38,13,63,.06), 0 18px 50px rgba(38,13,63,.18)",
   overflow: "hidden",
 };
 
 const headerStyle: CSSProperties = {
-  padding: "0.5rem 0.6rem",
-  borderBottom: "1px solid var(--border)",
+  padding: "0.55rem 0.65rem",
+  borderBottom: "1px solid var(--border-subtle)",
   display: "flex",
   alignItems: "center",
   gap: 6,
   flexShrink: 0,
-  background: "var(--bg-elevated)",
+  background: "var(--bg-secondary)",
 };
 
 const headerBtnStyle: CSSProperties = {
@@ -760,27 +913,31 @@ const messagesContainerStyle: CSSProperties = {
   minHeight: 0,
   overflowY: "auto",
   overflowX: "hidden",
-  padding: "0.6rem",
+  padding: "0.75rem 0.7rem",
   display: "flex",
   flexDirection: "column",
-  gap: 6,
+  gap: 8,
   width: "100%",
+  background: "var(--bg-primary)",
 };
 
 const inputBarStyle: CSSProperties = {
   display: "flex",
   gap: 6,
-  padding: "0.4rem 0.5rem",
-  borderTop: "1px solid var(--border)",
+  padding: "0.5rem 0.55rem",
+  borderTop: "1px solid var(--border-subtle)",
+  background: "var(--bg-secondary)",
   flexShrink: 0,
 };
 
 const sendBtnStyle: CSSProperties = {
-  padding: "0.4rem 0.7rem",
+  padding: "0.4rem 0.8rem",
   borderRadius: "var(--radius-sm)",
   border: "none",
-  background: "var(--accent)",
-  color: "#fff",
+  // 결쩜사 버튼 — 단색이 아니라 보라 그라디언트
+  background: "linear-gradient(135deg, #8150E8, #6830C8)",
+  boxShadow: "0 6px 16px rgba(104,48,200,.18)",
+  color: "var(--on-accent)",
   fontSize: 13,
   fontWeight: 600,
   cursor: "pointer",
@@ -795,8 +952,9 @@ const historyNewChatStyle: CSSProperties = {
   padding: "0.4rem",
   borderRadius: "var(--radius-sm)",
   border: "none",
-  background: "var(--accent)",
-  color: "#fff",
+  background: "linear-gradient(135deg, #8150E8, #6830C8)",
+  boxShadow: "0 6px 16px rgba(104,48,200,.18)",
+  color: "var(--on-accent)",
   fontSize: 12,
   fontWeight: 600,
   cursor: "pointer",

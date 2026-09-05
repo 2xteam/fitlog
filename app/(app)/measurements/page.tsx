@@ -15,6 +15,9 @@ import {
   groupFields,
   pick,
 } from "@/lib/inbody";
+import { flaggedFields, knowledgeOf, type InbodyFlag } from "@/lib/inbodyKnowledge";
+import { inbodyCommonGuidance, inbodyGuidanceFor } from "@/lib/inbodyGuidance";
+import { EvidenceLegend, GuidanceList } from "@/components/GuidanceList";
 
 /**
  * Inbody — 기록을 읽는 화면 하나.
@@ -85,6 +88,24 @@ export default function InbodyPage() {
     [latest, profile],
   );
 
+  /** 직전 기록 — 두 번 연속 벗어났는지 보려고 쓴다 */
+  const previous = useMemo(() => {
+    if (!rows || rows.length < 2) return null;
+    const sorted = [...rows].sort(
+      (a, b) => new Date(b.measuredAt).getTime() - new Date(a.measuredAt).getTime(),
+    );
+    return sorted[1] ?? null;
+  }, [rows]);
+
+  /**
+   * 표준범위를 벗어난 항목.
+   * 표준범위는 이미 저장하고 있었는데 모아주지 않아서, 36개를 다 훑어야 했다.
+   */
+  const flagged = useMemo(
+    () => flaggedFields(latest, previous, { gender: profile?.gender ?? null }),
+    [latest, previous, profile],
+  );
+
   /** 구획(체성분분석 · 비만분석 …)으로 묶어 보여준다 */
   const groups = useMemo(() => groupFields(available), [available]);
 
@@ -142,8 +163,29 @@ export default function InbodyPage() {
                 points={toPoints(rows, f.path)}
                 open={trendOpen.has(f.path)}
                 onToggle={() => toggleTrend(f.path)}
+                note={knowledgeOf(f.path)?.explain}
               />
             ))}
+          </div>
+        ) : null}
+
+        {/* 이번에 표준범위를 벗어난 항목 — 36개를 다 훑지 않아도 된다 */}
+        {latest ? (
+          <div style={{ marginTop: 30 }}>
+            <p className="eyebrow" style={{ margin: "0 0 2px" }}>
+              이번에 벗어난 항목 · {flagged.length}
+            </p>
+            {flagged.length === 0 ? (
+              <p className="lead" style={{ marginTop: 8 }}>
+                표준범위를 벗어난 항목이 없어요.
+              </p>
+            ) : (
+              <div style={{ marginTop: 14, display: "grid", gap: 14 }}>
+                {flagged.map((f) => (
+                  <InbodyFlagCard key={f.field.path} flag={f} />
+                ))}
+              </div>
+            )}
           </div>
         ) : null}
       </Sheet>
@@ -183,6 +225,7 @@ export default function InbodyPage() {
                     points={toPoints(rows, f.path)}
                     open={open.has(f.path)}
                     onToggle={() => toggle(f.path)}
+                    note={knowledgeOf(f.path)?.explain}
                   />
                 ))}
               </div>
@@ -192,6 +235,20 @@ export default function InbodyPage() {
           <p className="lead">아직 기록이 없어요.</p>
         ) : null}
       </Sheet>
+
+      {/* 인바디 값을 읽을 때의 원칙 — 측정 방법이 곧 기준을 정한다 */}
+      {latest ? (
+        <Sheet eyebrow="HOW TO READ" headline="수치를 읽을 때">
+          <div style={{ marginTop: 16 }}>
+            <EvidenceLegend />
+            <GuidanceList items={inbodyCommonGuidance()} />
+            <p className="field-hint" style={{ marginTop: 14, lineHeight: 1.7 }}>
+              이 화면은 기록을 읽고 생활 습관을 안내하는 데까지예요. 진단이나 처방은 하지
+              않아요. 몸에 이상이 느껴지면 진료를 받아보세요.
+            </p>
+          </div>
+        </Sheet>
+      ) : null}
 
       {/* 원본 목록 — 평소에는 접어두고 필요할 때 펼친다 */}
       <Sheet eyebrow="RECORDS" headline="등록된 결과지">
@@ -254,6 +311,211 @@ export default function InbodyPage() {
           </div>
         ) : null}
       </Sheet>
+    </div>
+  );
+}
+
+
+/**
+ * 표준범위를 벗어난 항목 한 건.
+ * 값 · 무엇인지 · 어떻게 읽을지 · 무엇을 해볼지를 한자리에 둔다.
+ * 피검사의 같은 카드와 모양을 맞춰, 탭을 오가도 같은 앱으로 읽히게 한다.
+ */
+function InbodyFlagCard({ flag: f }: { flag: InbodyFlag }) {
+  const [open, setOpen] = useState(false);
+  const items = inbodyGuidanceFor(f.field.path, f.status);
+  const tone = f.concerning ? "var(--danger)" : "var(--warning)";
+
+  const rangeText =
+    f.low != null && f.high != null
+      ? `${f.low} ~ ${f.high}`
+      : f.high != null
+        ? `${f.high} 이하`
+        : f.low != null
+          ? `${f.low} 이상`
+          : "";
+
+  return (
+    <div
+      style={{
+        border: "1px solid var(--border)",
+        borderRadius: "var(--radius-md)",
+        background: "var(--bg-card)",
+        padding: "16px 18px",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+        <span style={{ fontSize: "0.95rem", fontWeight: 700 }}>{f.field.label}</span>
+        <span
+          style={{
+            padding: "2px 8px",
+            borderRadius: 999,
+            background: f.concerning ? "var(--danger-subtle)" : "var(--point-subtle)",
+            color: tone,
+            fontSize: "0.66rem",
+            fontWeight: 700,
+          }}
+        >
+          {f.status === "high" ? "표준 이상" : "표준 이하"}
+        </span>
+        {f.repeated ? (
+          <span
+            style={{
+              padding: "2px 8px",
+              borderRadius: 999,
+              background: "var(--danger-subtle)",
+              color: "var(--danger)",
+              fontSize: "0.66rem",
+              fontWeight: 700,
+            }}
+          >
+            두 번 연속
+          </span>
+        ) : null}
+      </div>
+
+      <div
+        style={{
+          marginTop: 10,
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 10,
+        }}
+      >
+        <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
+          표준 {rangeText}
+        </span>
+        <span style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+          <span
+            style={{
+              fontSize: "1.3rem",
+              fontWeight: 800,
+              letterSpacing: "-0.02em",
+              fontVariantNumeric: "tabular-nums",
+              color: tone,
+            }}
+          >
+            {f.value}
+          </span>
+          <span style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>
+            {f.field.unit}
+          </span>
+        </span>
+      </div>
+
+      {/*
+        판정에 쓴 기준이 결과지에서 온 게 아니면 밝힌다.
+        기준 이름을 문장 안에 넣으면 조사가 어긋난다("…갈려요)으로 표시했어요").
+        그래서 문장과 기준을 줄로 나눈다.
+      */}
+      {!f.printed ? (
+        <div style={{ marginTop: 8 }}>
+          <p className="field-hint" style={{ margin: 0, fontSize: "0.68rem" }}>
+            결과지에 표준범위가 없어 일반 기준으로 표시했어요.
+          </p>
+          <p className="field-hint" style={{ margin: "2px 0 0", fontSize: "0.68rem" }}>
+            기준 · {f.rangeLabel ?? "—"}
+            {f.rangeSource
+              ? f.rangeSource.url
+                ? " · "
+                : ` · ${f.rangeSource.name}`
+              : ""}
+            {f.rangeSource?.url ? (
+              <a
+                href={f.rangeSource.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: "var(--accent)" }}
+              >
+                {f.rangeSource.name} ↗
+              </a>
+            ) : null}
+          </p>
+        </div>
+      ) : null}
+
+      {f.knowledge?.explain ? (
+        <p
+          style={{
+            margin: "12px 0 0",
+            fontSize: "0.82rem",
+            lineHeight: 1.7,
+            color: "var(--text-secondary)",
+          }}
+        >
+          {f.knowledge.explain.replace(/\*\*/g, "")}
+        </p>
+      ) : null}
+
+      {f.knowledge?.adjust?.length ? (
+        <div
+          style={{
+            marginTop: 12,
+            padding: "12px 14px",
+            borderRadius: "var(--radius-sm)",
+            background: "var(--accent-subtle)",
+          }}
+        >
+          <p
+            style={{
+              margin: "0 0 6px",
+              fontSize: "0.64rem",
+              fontWeight: 700,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: "var(--accent)",
+            }}
+          >
+            읽을 때 함께 볼 것
+          </p>
+          {f.knowledge.adjust.map((a, i) => (
+            <p
+              key={i}
+              style={{
+                margin: i === 0 ? 0 : "6px 0 0",
+                fontSize: "0.78rem",
+                lineHeight: 1.65,
+                color: "var(--text-secondary)",
+              }}
+            >
+              {a.note.replace(/\*\*/g, "")}
+            </p>
+          ))}
+        </div>
+      ) : null}
+
+      {items.length > 0 ? (
+        <div style={{ marginTop: 14 }}>
+          <button
+            type="button"
+            className="btn btn--ghost"
+            style={{ padding: "8px 14px", fontSize: 13 }}
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+          >
+            {open ? "권장사항 접기" : `권장사항 ${items.length}가지 보기`}
+            <span
+              aria-hidden="true"
+              style={{
+                marginLeft: 6,
+                fontSize: "0.7rem",
+                display: "inline-block",
+                transform: open ? "rotate(180deg)" : "none",
+                transition: "transform .15s ease",
+              }}
+            >
+              ▼
+            </span>
+          </button>
+
+          {open ? (
+            <div style={{ marginTop: 14 }}>
+              <GuidanceList items={items} />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

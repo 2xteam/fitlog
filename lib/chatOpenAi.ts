@@ -44,6 +44,17 @@ export type ChatTurnResult = {
   usage: ResponsesCreateUsage | null;
 };
 
+/**
+ * 매 턴 보낼 지침을 만든다 — 정책 + 질문에 맞는 참고 문서 + 내 기록.
+ * 스트리밍 라우트도 같은 지침을 쓰도록 내보낸다. 두 경로가 다른 말을 하면 안 된다.
+ */
+export function buildChatInstructions(
+  userText: string,
+  measurementContext?: string,
+): string {
+  return mergeInstructions(userText, measurementContext);
+}
+
 function mergeInstructions(userText: string, measurementContext?: string): string {
   const ragContext = buildChatRagContext(userText);
   const parts = [CHAT_INSTRUCTIONS];

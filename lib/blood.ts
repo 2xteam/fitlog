@@ -32,6 +32,7 @@ export type BloodRow = {
   testedDate?: string;
   imageUrl?: string | null;
   lab?: { name?: string | null; clinic?: string | null } | null;
+  note?: string | null;
   results: ResultLike[];
   etc?: Array<{ label: string; value?: string | null; unit?: string | null }>;
 };

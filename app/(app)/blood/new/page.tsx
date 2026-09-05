@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Sheet } from "@/components/Sheet";
 import { showToast } from "@/components/Toast";
+import { NoteField } from "@/components/RecordNote";
 import { loadSession, type SessionUser } from "@/lib/session";
 import { checkUploadSize, shrinkImageForUpload } from "@/lib/clientImageResize";
 import { matchAnalyte } from "@/lib/bloodCatalog";
@@ -25,6 +26,7 @@ type Draft = {
   lab: { name: string | null; clinic: string | null; receiptNo: string | null };
   results: ResultLike[];
   etc: Array<{ label: string; value: string | null; unit: string | null; refText: string | null }>;
+  note: string;
   warnings: Array<{ code: string; message: string }>;
   imageUrl: string | null;
   imageError: string | null;
@@ -59,6 +61,7 @@ export default function NewBloodPage() {
       lab: { name: null, clinic: null, receiptNo: null },
       results: [],
       etc: [],
+      note: "",
       warnings: [],
       imageUrl: null,
       imageError: null,
@@ -172,6 +175,7 @@ export default function NewBloodPage() {
           lab: draft.lab,
           results: draft.results,
           etc: draft.etc,
+          note: draft.note.trim() || null,
           imageUrl: draft.imageUrl,
           model: draft.model,
           editedByUser: true,
@@ -285,6 +289,13 @@ export default function NewBloodPage() {
               <p className="field-hint" style={{ marginTop: 6 }}>
                 날짜당 1건이에요. 같은 날짜에 기록이 있으면 교체돼요.
               </p>
+            </div>
+
+            <div style={{ marginTop: 20 }}>
+              <NoteField
+                value={draft.note}
+                onChange={(v) => setDraft((d) => (d ? { ...d, note: v } : d))}
+              />
             </div>
 
             <div style={{ marginTop: 22, overflowX: "auto" }}>
