@@ -31,6 +31,8 @@ export function FloatingChat() {
   /** 스레드를 불러오는 중 — 안내 문구가 깜빡이지 않게 한다 */
   const [hydrating, setHydrating] = useState(false);
   const [tokenBalance, setTokenBalance] = useState<number | null>(null);
+  /** 이어서 물어볼 것 — 서버가 이 사용자 기록에서 뽑아준다 */
+  const [chips, setChips] = useState<string[]>([]);
   const bottom = useRef<HTMLDivElement>(null);
   const pendingMsg = useRef<string | null>(null);
   const cacheWord = useRef<string | null>(null);
@@ -48,6 +50,20 @@ export function FloatingChat() {
       const json = (await res.json()) as { ok: boolean; tokens?: number };
       if (json.ok) setTokenBalance(json.tokens ?? 0);
     } catch { /* ignore */ }
+  }, []);
+
+  /**
+   * 제안 칩을 받아온다. 고정 목록이 아니라 이번 회차에 벗어난 항목에서 뽑은 것이다.
+   * 실패해도 대화는 그대로 쓸 수 있어야 하니 조용히 넘어간다.
+   */
+  const loadChips = useCallback(async (s: SessionUser) => {
+    try {
+      const res = await fetch(`/api/chat/suggestions?userId=${encodeURIComponent(s.id)}`);
+      const json = (await res.json()) as { ok: boolean; chips?: Array<{ text: string }> };
+      if (json.ok && json.chips) setChips(json.chips.map((c) => c.text));
+    } catch {
+      /* 제안은 있으면 좋은 것이지 없으면 안 되는 것이 아니다 */
+    }
   }, []);
 
   const loadThreads = useCallback(async (s: SessionUser) => {
@@ -98,6 +114,7 @@ export function FloatingChat() {
 
     (async () => {
       await refreshTokenBalance(session);
+      void loadChips(session);
 
       // 대화 이력을 못 불러와도 새 대화는 시작할 수 있어야 한다
       let list: Thread[] = [];
@@ -287,6 +304,7 @@ export function FloatingChat() {
       await fetchMessages(session, threadId);
       await loadThreads(session);
       await refreshTokenBalance(session);
+      void loadChips(session);
 
       if (cacheWord.current) {
         const wordToCache = cacheWord.current;
@@ -412,7 +430,7 @@ export function FloatingChat() {
               {hydrating && messages.length === 0 ? (
                 <ChatSkeleton />
               ) : messages.length === 0 ? (
-                <EmptyGuide onPick={(q) => void sendText(q)} />
+                <EmptyGuide onPick={(q) => void sendText(q)} chips={chips} />
               ) : (
                 messages.map((m) => {
                   const isPendingAi = m._id.startsWith("local-ai-") && busy;
@@ -448,6 +466,16 @@ export function FloatingChat() {
                   );
                 })
               )}
+
+              {/*
+                답이 끝나면 이어서 물어볼 것을 제안한다.
+                전에는 첫 화면에만 칩이 있어서 대화가 시작되면 사라졌다 —
+                그 뒤로는 무엇을 더 물어도 되는지 알 수 없었다.
+              */}
+              {messages.length > 0 && !busy && chips.length > 0 ? (
+                <FollowUps chips={chips} onPick={(q) => void sendText(q)} />
+              ) : null}
+
               <div ref={bottom} />
             </div>
 
@@ -669,14 +697,70 @@ function ChatSkeleton() {
   );
 }
 
-function EmptyGuide({ onPick }: { onPick: (q: string) => void }) {
+
+/**
+ * 답변 뒤에 붙는 이어질 질문.
+ *
+ * 빈 화면의 안내 칩과 모양을 나눈다 — 저기는 "이런 걸 물어볼 수 있어요"라는 소개고,
+ * 여기는 방금 읽은 답에 이어 붙이는 것이다. 그래서 말풍선처럼 크게 두지 않고
+ * 목록 끝에 조용히 놓는다.
+ */
+function FollowUps({
+  chips,
+  onPick,
+}: {
+  chips: string[];
+  onPick: (q: string) => void;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 6,
+        alignItems: "flex-start",
+        marginTop: 4,
+        paddingTop: 10,
+        borderTop: "1px solid var(--border-subtle)",
+        flexShrink: 0,
+      }}
+    >
+      <span
+        style={{
+          fontSize: 10.5,
+          fontWeight: 700,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          color: "var(--text-muted)",
+        }}
+      >
+        이어서 물어보기
+      </span>
+      {chips.map((q) => (
+        <button key={q} type="button" className="chat-suggestion" onClick={() => onPick(q)}>
+          {q}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function EmptyGuide({
+  onPick,
+  chips,
+}: {
+  onPick: (q: string) => void;
+  /** 서버가 기록에서 뽑아준 것. 아직 못 받았으면 고정 목록으로 시작한다 */
+  chips: string[];
+}) {
+  const items = chips.length > 0 ? chips : SUGGESTIONS;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 4 }}>
-      <GuideBubble text="안녕하세요, **AI Fit 상담사**예요. 기록해 둔 인바디 수치를 바탕으로 지금 상태와 다음 할 일을 같이 정리해 드려요." />
+      <GuideBubble text="안녕하세요, **AI Fit 상담사**예요. 기록해 둔 인바디·피검사 수치를 바탕으로 지금 상태와 다음 할 일을 같이 정리해 드려요." />
       <GuideBubble text="이런 걸 물어볼 수 있어요 👇" />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start" }}>
-        {SUGGESTIONS.map((q) => (
+        {items.map((q) => (
           <button
             key={q}
             type="button"
