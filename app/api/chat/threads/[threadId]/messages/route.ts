@@ -11,7 +11,7 @@ import {
 import { ChatThread, type ChatThreadDocument } from "@/models/ChatThread";
 import { getUserModel } from "@/models/User";
 import { deductTokens } from "@/lib/useToken";
-import { buildMeasurementContext } from "@/lib/measurementContext";
+import { buildBloodContext, buildMeasurementContext } from "@/lib/measurementContext";
 
 export const runtime = "nodejs";
 // OpenAI 응답 지연 대비 (Vercel 기본값은 플랜에 따라 10~15초)
@@ -160,10 +160,16 @@ export async function POST(
       thread.openAiConversationId = convId;
     }
 
-    // 상담이 일반론에 그치지 않도록 이 사용자의 최근 기록을 함께 넘긴다
+    // 상담이 일반론에 그치지 않도록 이 사용자의 최근 기록을 함께 넘긴다.
+    // 인바디와 피검사를 둘 다 싣는다 — 겹쳐 봐야 보이는 것이 있다
+    // (근육량이 많으면 크레아티닌·eGFR 해석이 달라지는 등).
     let measurementContext = "";
     try {
-      measurementContext = await buildMeasurementContext(userId);
+      const [inbody, blood] = await Promise.all([
+        buildMeasurementContext(userId),
+        buildBloodContext(userId).catch(() => ""),
+      ]);
+      measurementContext = [inbody, blood].filter(Boolean).join("\n\n");
     } catch {
       /* 기록을 못 읽어도 대화는 이어간다 */
     }

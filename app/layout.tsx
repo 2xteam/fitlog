@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "FitLog",
-  description: "인바디 결과지를 사진으로 기록하고 체성분 추이를 관리하는 FitLog",
+  description: "인바디와 피검사 결과지를 사진으로 기록하고, 체성분 추이와 수치별 권장사항을 함께 보는 FitLog",
   icons: {
     icon: "/favicon.png",
     apple: "/icon.png",

@@ -107,7 +107,9 @@ export default function HomePage() {
         <div style={{ marginTop: 16, display: "grid", gap: 10 }}>
           {[
             { href: "/measurements", label: "Inbody — 최근 상태와 추이" },
-            { href: "/measurements/new", label: "결과지 등록 · 체중만 기록" },
+            { href: "/measurements/new", label: "인바디 결과지 등록 · 체중만 기록" },
+            { href: "/blood", label: "Blood — 피검사 수치와 권장사항" },
+            { href: "/blood/new", label: "피검사 결과지 등록" },
             { href: "/my", label: "내 프로필" },
           ].map((m) => (
             <Link

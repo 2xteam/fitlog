@@ -33,7 +33,7 @@ export default function LandingPage() {
           <Sheet
             tone="dark"
             ornament
-            eyebrow="FITLOG · BODY COMPOSITION"
+            eyebrow="FITLOG · BODY & BLOOD"
             headline={
               <>
                 결과지를 찍으면,
@@ -41,7 +41,7 @@ export default function LandingPage() {
                 <span style={{ color: "#ead58c" }}>추이가 남습니다.</span>
               </>
             }
-            lead="인바디 결과지를 찍으면 인쇄된 항목을 모두 읽어 날짜별로 쌓아 둡니다. 종이를 버려도 기록은 남습니다."
+            lead="인바디와 피검사 결과지를 찍으면 인쇄된 항목을 모두 읽어 날짜별로 쌓아 둡니다. 종이를 버려도 기록은 남습니다."
           >
             <div style={{ marginTop: 24 }}>
               <LandingCta variant="hero" />
@@ -113,15 +113,15 @@ export default function LandingPage() {
 const STEPS = [
   {
     "title": "결과지를 찍는다",
-    "desc": "기종이 달라도 됩니다. 인쇄된 항목을 그대로 읽습니다."
+    "desc": "인바디든 피검사든, 기종·검사기관이 달라도 인쇄된 항목을 그대로 읽습니다."
   },
   {
     "title": "확인하고 저장한다",
     "desc": "읽어 온 값을 먼저 보여드립니다. 자동으로 저장하지 않습니다."
   },
   {
-    "title": "추이로 본다",
-    "desc": "적정 범위와 겹쳐 지금 위치를, 항목별 그래프로 흐름을 봅니다."
+    "title": "추이와 해설을 본다",
+    "desc": "적정 범위와 겹쳐 지금 위치를, 항목별 그래프로 흐름을 봅니다. 벗어난 항목에는 근거를 밝힌 권장사항이 붙습니다."
   }
 ];
 
@@ -131,8 +131,20 @@ const FEATURES = [
     "desc": "체중·골격근량·체지방률은 물론 인쇄된 항목을 모두 읽습니다."
   },
   {
+    "name": "피검사 판독과 해설",
+    "desc": "간·지질·혈당·신장·혈액 항목을 읽고, 각 수치가 무엇을 뜻하는지 함께 보여줍니다."
+  },
+  {
+    "name": "근거를 밝힌 권장사항",
+    "desc": "수치가 벗어나면 운동·식습관·영양제를 제안하고, 어떤 진료지침과 연구에서 나온 말인지 펼쳐볼 수 있습니다."
+  },
+  {
     "name": "적정 범위 비교",
     "desc": "결과지에 인쇄된 표준범위와 겹쳐 지금 위치를 보여줍니다."
+  },
+  {
+    "name": "체성분과 겹쳐 보기",
+    "desc": "근육량이 많으면 신장 수치가 실제보다 낮게 나옵니다. 두 기록을 함께 가진 앱만 알려줄 수 있는 맥락입니다."
   },
   {
     "name": "항목별 추이",

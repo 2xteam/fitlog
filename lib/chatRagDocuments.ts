@@ -1,7 +1,13 @@
 /**
  * 채팅용 RAG 참고 문서. 키워드 매칭으로 관련 청크를 골라 프롬프트에 넣습니다.
  * 정책 청크는 항상 포함됩니다. 새 주제는 `CHAT_RAG_CHUNKS`에 항목을 추가하세요.
+ *
+ * 피검사 청크는 여기 손으로 쓰지 않고 **카탈로그에서 생성**해 붙입니다
+ * (`lib/bloodRagChunks.ts`). 손으로 쓴 요약은 지식이 바뀔 때 갈라져서,
+ * 화면과 상담사가 같은 질문에 다르게 답하게 됩니다.
  */
+
+import { BLOOD_RAG_CHUNKS } from "@/lib/bloodRagChunks";
 
 export type ChatRagChunk = {
   id: string;
@@ -22,16 +28,21 @@ export const CHAT_RAG_CHUNKS: ChatRagChunk[] = [
     baseScore: 0,
     body: `## FitLog 채팅 정책 (RAG)
 
-이 채널은 **체성분 기록 해석과 생활 습관 상담**만 지원합니다.
+이 채널은 **인바디·피검사 기록 해석과 생활 습관 상담**만 지원합니다.
 
-1) 허용: 인바디 수치의 뜻과 읽는 법, 기록 사이의 변화 해석, 체중·골격근량·체지방률 목표 잡기,
-   일반적인 운동·식사·수면·수분 습관 조언, 앱 사용법(결과지 등록·수정·그래프 보기).
+1) 허용: 인바디 수치와 피검사 항목의 뜻과 읽는 법, 기록 사이의 변화 해석,
+   체중·골격근량·체지방률 목표 잡기, 일반적인 운동·식사·수면·수분 습관 조언,
+   앱 사용법(결과지 등록·수정·그래프 보기).
 2) 비허용: 질병 진단, 약·보충제 처방, 특정 질환 치료법 안내, 극단적 단식·급격한 감량 유도,
    실시간 사실 조회(날씨·뉴스·주가), 타인 사칭.
+   **피검사 수치로 병을 단정하지 않습니다.** 기준선을 넘었다는 것과 진료에서 확인할
+   일이라는 것까지만 말합니다.
 3) 건강 이상 신호(급격한 부종, 이유 없는 체중 급감, 통증 등)가 보이면 **진료를 권합니다.**
    숫자만 보고 병을 단정하지 않습니다.
 4) 수치는 **사용자의 실제 기록**을 근거로 말합니다. 기록에 없는 값을 지어내지 않고,
-   없으면 "그 항목은 기록에 없다"고 밝힙니다.`,
+   없으면 "그 항목은 기록에 없다"고 밝힙니다.
+5) 운동·식습관·영양제를 권할 때는 **근거 등급(A~D)을 함께 말합니다.** 등급이 없는 조언은
+   하지 않습니다. 영양제는 결핍이 확인된 항목에만 말하고 용량은 말하지 않습니다.`,
   },
   {
     id: "topic_body_fat",
@@ -122,12 +133,15 @@ function scoreChunk(userText: string, tokens: Set<string>, c: ChatRagChunk): num
   return score;
 }
 
+/** 인바디 청크 + 카탈로그에서 생성한 피검사 청크 */
+const ALL_CHUNKS: ChatRagChunk[] = [...CHAT_RAG_CHUNKS, ...BLOOD_RAG_CHUNKS];
+
 /** 사용자 질문에 맞춰 참고 문서 문자열을 만듭니다. 정책 청크는 항상 포함합니다. */
 export function buildChatRagContext(userText: string, maxChars = 4200): string {
   const trimmed = userText.trim();
   const tokens = tokenizeForMatch(trimmed);
-  const policy = CHAT_RAG_CHUNKS.find((c) => c.id === POLICY_ID);
-  const others = CHAT_RAG_CHUNKS.filter((c) => c.id !== POLICY_ID);
+  const policy = ALL_CHUNKS.find((c) => c.id === POLICY_ID);
+  const others = ALL_CHUNKS.filter((c) => c.id !== POLICY_ID);
   const ranked = others
     .map((c) => ({ c, s: scoreChunk(trimmed, tokens, c) }))
     .filter((x) => x.s > 0)
