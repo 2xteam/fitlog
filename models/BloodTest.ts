@@ -21,6 +21,8 @@ const ResultSchema = new Schema(
     code: { type: String, default: null },
     /** 결과지에 인쇄된 이름 원문 */
     name: { type: String, required: true },
+    /** 그 줄이 인쇄된 원문 — 나중에 추출 오류를 대조할 때 쓴다 */
+    rowText: { type: String, default: null },
     value: { type: Number, default: null },
     unit: { type: String, default: null },
 

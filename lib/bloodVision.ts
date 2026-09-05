@@ -17,6 +17,8 @@ const VISION_MODEL = process.env.OPENAI_VISION_MODEL ?? "gpt-4o";
 
 export type ExtractedResult = {
   name: string;
+  /** 그 줄이 결과지에 인쇄된 그대로. 밀려 읽었는지 검토 화면에서 대조한다 */
+  rowText: string | null;
   value: number | null;
   unit: string | null;
   refLow: number | null;
@@ -33,6 +35,21 @@ export type ExtractedBloodTest = {
 };
 
 const SYSTEM_PROMPT = `너는 임상 검사(피검사) 결과지를 읽어 JSON으로 옮기는 도구다.
+
+⚠️ 가장 중요한 두 가지 (실제로 여기서 틀렸다):
+
+A. **표를 한 줄씩, 왼쪽에서 오른쪽으로 읽는다.**
+   칸을 열 단위로 따로 읽으면 줄이 밀린다. 실제로 ALT 자리에 ALP의 값이 들어가고
+   그 아래가 연달아 한 칸씩 밀린 적이 있다.
+   각 줄마다 rowText에 **그 줄에 인쇄된 글자를 그대로** 옮겨 담아라. 그러면
+   검사명·결과·참고치가 같은 줄에서 나왔는지 확인할 수 있다.
+
+B. **참고치를 아는 지식으로 채우지 않는다.**
+   결과지에 인쇄된 값만 옮긴다. 흔히 쓰이는 기준을 알고 있어도 쓰지 않는다.
+   실제로 r-GTP를 "≤ 55"라고 인쇄했는데 "≤ 60"으로, CPK를 "M < 260"인데
+   "≤ 170"으로 바꿔 쓴 적이 있다. 검사실마다 기준이 달라서 이건 값을 틀리게
+   읽는 것과 똑같이 위험하다.
+   흐려서 못 읽으면 refLow·refHigh를 null로 두고 refText만 남긴다.
 
 규칙:
 1. 결과지에 **인쇄된 것만** 옮긴다. 계산하거나 추정하지 않는다.
@@ -55,6 +72,8 @@ const SYSTEM_PROMPT = `너는 임상 검사(피검사) 결과지를 읽어 JSON�
    시각이 없으면 "YYYY-MM-DD". 여러 날짜가 있으면 **검체채취일**을 우선한다.
 9. 흐릿해서 확신이 없는 숫자는 추측하지 말고 null로 두는 편이 낫다.
 10. 값이 없는 빈 줄은 넣지 않는다.
+11. 결과값이 그 줄의 참고치 경계와 **똑같이** 나왔다면 줄을 잘못 읽었을 가능성이
+    높다. 다시 확인하고, 그래도 같으면 그대로 둔다.
 
 반드시 JSON만 출력한다.`;
 
@@ -64,6 +83,7 @@ const JSON_SHAPE = `{
   "results": [
     {
       "name": "결과지에 인쇄된 검사명 그대로",
+      "rowText": "그 줄에 인쇄된 글자 전체 (검사명·결과·판정·참고치·검체)",
       "value": 0,
       "unit": "mg/dL",
       "refLow": 0,
@@ -93,7 +113,10 @@ export async function extractBloodTestFromImage(
         content: [
           {
             type: "text",
-            text: `이 검사결과 보고서를 아래 JSON 형태로 옮겨줘. 표의 모든 줄을 빠짐없이 넣어줘.\n\n${JSON_SHAPE}`,
+            text:
+              `이 검사결과 보고서를 아래 JSON 형태로 옮겨줘. 표의 모든 줄을 빠짐없이 넣어줘.\n` +
+              `한 줄씩 읽어. 참고치는 인쇄된 것만 쓰고, 아는 기준으로 채우지 마.\n` +
+              `각 줄의 rowText에 그 줄 원문을 담아줘.\n\n${JSON_SHAPE}`,
           },
           { type: "image_url", image_url: { url: dataUrl, detail: "high" } },
         ],

@@ -17,6 +17,8 @@ import { pick } from "@/lib/inbody";
 export type ResultLike = {
   code?: string | null;
   name: string;
+  /** 결과지에 인쇄된 그 줄 원문 — 검토 화면에서 값과 대조한다 */
+  rowText?: string | null;
   value?: number | null;
   unit?: string | null;
   refLow?: number | null;
@@ -335,6 +337,71 @@ export function validateBloodTest(results: ResultLike[]): BloodWarning[] {
       w.push({
         code: "HBA1C_EAG",
         message: `당화혈색소 ${a1c}% 의 평균혈당 환산값은 ${calc.toFixed(0)} 인데 ${eag} 로 읽혔어요.`,
+      });
+    }
+  }
+
+  w.push(...suspectRows(results));
+  return w;
+}
+
+/**
+ * 줄이 밀려 읽혔거나 참고치를 지어냈을 때를 잡는다.
+ *
+ * 실제 결과지로 확인한 실패 두 가지다 —
+ *
+ *  1. **표가 한 줄씩 밀렸다.** ALT 자리에 ALP의 값(46)이, ALP 자리에 그 참고치
+ *     상한(120)이 들어갔고 그 아래가 연달아 밀렸다. 계산 검산(총콜레스테롤·MCHC
+ *     등)은 간 항목을 건드리지 않아 하나도 못 잡았다.
+ *  2. **참고치를 아는 지식으로 채웠다.** 결과지에 `≤ 55`로 인쇄된 r-GTP를 `≤ 60`,
+ *     `M < 260`인 CPK를 `≤ 170`으로 바꿔 썼다. 이 앱은 "인쇄된 참고치가 진실"을
+ *     전제로 판정하므로, 값을 틀리게 읽는 것과 똑같이 위험하다.
+ *
+ * 그래서 두 가지를 본다 — 값이 자기 참고치 경계와 **정확히** 같은 경우(밀림의 전형),
+ * 그리고 인쇄된 참고치가 카탈로그의 일반값과 **다른** 경우(지어냈거나, 정말 이
+ * 검사실 기준이 다른 것 — 어느 쪽이든 사람이 대조해야 한다).
+ */
+function suspectRows(results: ResultLike[]): BloodWarning[] {
+  const w: BloodWarning[] = [];
+
+  for (const r of results) {
+    if (r.value == null) continue;
+    const a = r.code ? findAnalyte(r.code) : undefined;
+    const label = a?.label ?? r.name;
+
+    // ① 값이 자기 참고치 경계와 똑같다 — 참고치 칸을 값으로 읽은 흔적
+    if (
+      (r.refHigh != null && r.value === r.refHigh) ||
+      (r.refLow != null && r.value === r.refLow)
+    ) {
+      w.push({
+        code: r.code ?? r.name,
+        message: `${label} 값(${r.value})이 참고치 경계와 똑같아요. 표가 한 줄 밀려 읽혔을 수 있어요 — 결과지와 대조해 주세요.`,
+      });
+    }
+
+    // ② 인쇄된 참고치가 일반값과 다르다
+    const t = a?.typicalRef;
+    if (!t) continue;
+    const diff = (got: number | null | undefined, want: number | undefined) =>
+      got != null && want != null && Math.abs(got - want) > Math.max(0.01, Math.abs(want) * 0.02);
+
+    if (diff(r.refHigh, t.high) || diff(r.refLow, t.low)) {
+      const printed =
+        r.refLow != null && r.refHigh != null
+          ? `${r.refLow}~${r.refHigh}`
+          : r.refHigh != null
+            ? `≤${r.refHigh}`
+            : `≥${r.refLow}`;
+      const usual =
+        t.low != null && t.high != null
+          ? `${t.low}~${t.high}`
+          : t.high != null
+            ? `≤${t.high}`
+            : `≥${t.low}`;
+      w.push({
+        code: r.code ?? r.name,
+        message: `${label} 참고치를 ${printed}로 읽었는데 흔한 기준은 ${usual}이에요. 결과지에 인쇄된 값이 맞는지 확인해 주세요.`,
       });
     }
   }
