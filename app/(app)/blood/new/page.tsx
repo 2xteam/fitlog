@@ -352,60 +352,75 @@ export default function NewBloodPage() {
         <Sheet
           tone="dark"
           ornament
-          eyebrow="NEW"
-          headline="결과지 등록"
-          lead="검사결과 보고서를 찍어 올리면 항목을 읽어드려요. 저장 전에 직접 확인하실 수 있어요."
-        >
-          <div style={{ marginTop: 22, display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link href="/blood" className="btn btn--ghost">
-              ← Blood
-            </Link>
-          </div>
-        </Sheet>
+          eyebrow="NEW RECORD"
+          headline={
+            <>
+              결과지를 찍으면
+              <br />
+              수치를 읽어드려요
+            </>
+          }
+          lead={
+            <>
+              여러 장을 한 번에 선택할 수 있어요.
+              <br />
+              읽은 값은 저장 전에 한 회차씩 확인해요.
+            </>
+          }
+        />
 
-        <Sheet eyebrow="UPLOAD" headline="사진 올리기">
-          <p className="lead" style={{ marginTop: 8 }}>
-            여러 장을 한 번에 고를 수 있어요. 한 검사가 2장으로 나뉘어 있으면 함께
-            골라주세요 — <strong>검사일이 같으면 한 회차로 합쳐</strong> 드려요.
-          </p>
+        <Sheet eyebrow="UPLOAD" headline="결과지 사진">
+          <div style={{ marginTop: 20 }}>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              multiple
+              hidden
+              onChange={(e) => {
+                const list = Array.from(e.target.files ?? []);
+                // 같은 파일을 다시 고를 수 있도록 값을 비운다
+                e.target.value = "";
+                if (list.length > 0) void runExtract(list);
+              }}
+            />
+            <button
+              type="button"
+              className="btn btn--primary btn--block"
+              onClick={() => fileRef.current?.click()}
+              disabled={Boolean(busy)}
+            >
+              {busy ?? "사진 선택하기 (여러 장 가능)"}
+            </button>
 
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={(e) => void runExtract(Array.from(e.target.files ?? []))}
-            disabled={Boolean(busy)}
-            style={{ marginTop: 16, display: "block", fontSize: 14 }}
-          />
+            {msg ? (
+              <p className="lead" style={{ color: "var(--danger)" }}>
+                {msg}
+              </p>
+            ) : null}
 
-          {busy ? (
-            <p className="lead" style={{ marginTop: 14 }}>
-              {busy}
-            </p>
-          ) : null}
+            {failed.length > 0 ? (
+              <div style={{ marginTop: 16 }}>
+                <p className="field-label">읽지 못한 사진</p>
+                {failed.map((f) => (
+                  <p
+                    key={f.fileName}
+                    className="field-hint"
+                    style={{ margin: "4px 0 0" }}
+                  >
+                    {f.fileName} — {f.error}
+                  </p>
+                ))}
+              </div>
+            ) : null}
 
-          {msg ? (
-            <p className="lead" style={{ marginTop: 14, color: "var(--danger)" }}>
-              {msg}
-            </p>
-          ) : null}
-
-          {failed.length > 0 ? (
             <div className="note-block">
-              <strong>읽지 못한 사진</strong>
-              {failed.map((f) => (
-                <div key={f.fileName}>
-                  {f.fileName} — {f.error}
-                </div>
-              ))}
+              <strong>NOTE · 이렇게 찍으면 잘 읽어요</strong>
+              * 표 전체가 들어가게 찍어주세요. 참고치 칸까지 함께 읽어요.
+              <br />* 그림자나 반사가 없는 곳에서 정면으로 찍어주세요.
+              <br />* 한 검사가 2장으로 나뉘어 있으면 함께 고르세요. 검사일이 같으면 한 회차로 합쳐요.
+              <br />* 여러 장을 고르면 한 장씩 차례로 읽어요. 장당 10~20초쯤 걸려요.
             </div>
-          ) : null}
-
-          <div className="note-block">
-            <strong>NOTE</strong>
-            같은 검사일 기록이 이미 있으면 새 값으로 교체돼요. 참고치가 인쇄된 칸까지
-            함께 읽으니 결과지 표 전체가 잘 보이게 찍어주세요.
           </div>
         </Sheet>
       </div>
