@@ -54,11 +54,11 @@ export async function POST(req: Request) {
       email,
       "[FitLog] PIN 변경 요청",
       `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;">
-        <h2 style="color:#7c3aed;margin:0 0 16px;">FitLog</h2>
+        <h2 style="color:#116271;margin:0 0 16px;">FitLog</h2>
         <p>안녕하세요, <strong>${user.name}</strong>님.</p>
         <p>아래 버튼을 눌러 PIN을 변경할 수 있습니다.</p>
         <div style="text-align:center;margin:24px 0;">
-          <a href="${resetUrl}" style="display:inline-block;padding:14px 32px;background:#2ee8ae;color:#000;font-weight:700;border-radius:12px;text-decoration:none;font-size:15px;">
+          <a href="${resetUrl}" style="display:inline-block;padding:14px 32px;background:#116271;color:#ffffff;font-weight:700;border-radius:12px;text-decoration:none;font-size:15px;">
             PIN 변경하기
           </a>
         </div>

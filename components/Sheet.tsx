@@ -48,7 +48,7 @@ export function Sheet({
 
 /** 실(結)을 은유한 얇은 곡선 — 여백에만 놓는다 */
 export function Ornament({ light = false }: { light?: boolean }) {
-  const stroke = light ? "rgba(200,184,255,0.22)" : "rgba(139,92,246,0.14)";
+  const stroke = light ? "rgba(150,205,216,0.22)" : "rgba(17,98,113,0.14)";
   return (
     <svg className="sheet-ornament" viewBox="0 0 210 120" aria-hidden="true">
       <g fill="none" stroke={stroke} strokeWidth="1">

@@ -1,7 +1,7 @@
 export type ThemeId = "light" | "dark" | "custom";
 
 export type ThemeCustomColor = {
-  /** 커스텀 모드 전용 accent 색상 (hex, 기본 #2ee8ae) */
+  /** 커스텀 모드 전용 accent 색상 (hex, 기본 #116271) */
   accent: string;
   /** 커스텀 모드 전용 배경 색상 (hex, 기본 #000000) */
   bg: string;
@@ -22,19 +22,19 @@ export const PRESET_THEMES: ThemeConfig[] = [
     id: "dark",
     label: "다크",
     dataAttr: "dark",
-    preview: { bg: "#190527", accent: "#a78bfa", text: "#f6f1fb" },
+    preview: { bg: "#04161b", accent: "#5fb8c9", text: "#eef7f8" },
   },
   {
     id: "light",
     label: "라이트",
     dataAttr: "light",
-    preview: { bg: "#fdfbff", accent: "#7c3aed", text: "#1a0f2e" },
+    preview: { bg: "#f7fbfb", accent: "#116271", text: "#0f2027" },
   },
   {
     id: "custom",
     label: "커스텀",
     dataAttr: "custom",
-    preview: { bg: "#190527", accent: "#a78bfa", text: "#f6f1fb" },
+    preview: { bg: "#04161b", accent: "#5fb8c9", text: "#eef7f8" },
   },
 ];
 
@@ -46,7 +46,7 @@ const STORAGE_KEY = "fitlog_theme";
 type StoredTheme = { id: ThemeId; custom?: ThemeCustomColor };
 
 export function loadTheme(): StoredTheme {
-  // FitLog 기본은 결쩜사 계열 라이트(라벤더)
+  // FitLog 기본은 결쩜사 계열 라이트(청백)
   if (typeof window === "undefined") return { id: DEFAULT_THEME };
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -114,7 +114,7 @@ export function buildCustomVars(custom: ThemeCustomColor): Record<string, string
     "--accent-subtle": `rgba(${ar},${ag},${ab},0.14)`,
     "--danger": "#ff4e6a",
     "--danger-subtle": "rgba(255,78,106,0.12)",
-    "--success": "#2ee8ae",
+    "--success": "#116271",
     "--success-subtle": "rgba(46,232,174,0.12)",
     "--warning": "#ffc233",
     "--input-bg": mix(bgRgb, 0.35),

@@ -120,7 +120,7 @@ function LoginForm() {
             borderRadius: "var(--radius-md)",
             border: "none",
             background: busy ? "var(--text-muted)" : "var(--accent)",
-            color: "#000",
+            color: "var(--on-accent)",
             fontWeight: 700,
             cursor: busy ? "default" : "pointer",
             marginBottom: "0.75rem",

@@ -419,7 +419,7 @@ function FlaggedCard({
               fontWeight: 700,
               letterSpacing: "0.08em",
               textTransform: "uppercase",
-              color: "var(--point)",
+              color: "var(--point-ink)",
             }}
           >
             인바디 기록과 함께 보면 · {c.inbodyLabel} {c.inbodyValue}

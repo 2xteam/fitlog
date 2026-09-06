@@ -212,7 +212,7 @@ const featureStyle: CSSProperties = {
 const footerStyle: CSSProperties = {
   marginTop: 40,
   paddingTop: 30,
-  background: "#160b26",
+  background: "#061a1f",
   color: "#fff",
 };
 
@@ -220,6 +220,6 @@ const footerLineStyle: CSSProperties = {
   margin: "8px 0 0",
   fontSize: "0.78rem",
   lineHeight: 1.8,
-  color: "rgba(232,222,250,0.62)",
+  color: "rgba(230,244,246,0.62)",
   wordBreak: "keep-all",
 };

@@ -902,7 +902,7 @@ function GuideBubble({ text }: { text: string }) {
  * 애니메이션은 globals.css 에 있다.
  */
 function FlexFabIcon() {
-  const fg = "var(--chat-fab-fg, #21083f)";
+  const fg = "var(--chat-fab-fg, #04161b)";
   const bg = "var(--chat-fab-bg, var(--accent))";
   return (
     <svg width="52" height="52" viewBox="0 0 64 64" aria-hidden>
@@ -1004,7 +1004,7 @@ const fabStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  filter: "drop-shadow(0 4px 14px rgba(38,13,63,.28))",
+  filter: "drop-shadow(0 4px 14px rgba(6,34,40,.28))",
 };
 
 const panelStyle: CSSProperties = {
@@ -1020,9 +1020,9 @@ const panelStyle: CSSProperties = {
   background: "var(--bg-card)",
   display: "flex",
   flexDirection: "column",
-  // 결쩜사는 순수 검정을 쓰지 않는다. 그림자에도 보라를 섞는다
+  // 결쩜사는 순수 검정을 쓰지 않는다. 그림자에도 청록을 섞는다
   border: "1px solid var(--border)",
-  boxShadow: "0 1px 2px rgba(38,13,63,.06), 0 18px 50px rgba(38,13,63,.18)",
+  boxShadow: "0 1px 2px rgba(6,34,40,.06), 0 18px 50px rgba(6,34,40,.18)",
   overflow: "hidden",
 };
 
@@ -1112,9 +1112,9 @@ const sendBtnStyle: CSSProperties = {
   padding: "0.4rem 0.8rem",
   borderRadius: "var(--radius-sm)",
   border: "none",
-  // 결쩜사 버튼 — 단색이 아니라 보라 그라디언트
-  background: "linear-gradient(135deg, #8150E8, #6830C8)",
-  boxShadow: "0 6px 16px rgba(104,48,200,.18)",
+  // 결쩜사 버튼 — 단색이 아니라 먹청 그라디언트
+  background: "linear-gradient(135deg, #14788a, #0d5866)",
+  boxShadow: "0 6px 16px rgba(6,60,72,.18)",
   color: "var(--on-accent)",
   fontSize: 13,
   fontWeight: 600,
@@ -1130,8 +1130,8 @@ const historyNewChatStyle: CSSProperties = {
   padding: "0.4rem",
   borderRadius: "var(--radius-sm)",
   border: "none",
-  background: "linear-gradient(135deg, #8150E8, #6830C8)",
-  boxShadow: "0 6px 16px rgba(104,48,200,.18)",
+  background: "linear-gradient(135deg, #14788a, #0d5866)",
+  boxShadow: "0 6px 16px rgba(6,60,72,.18)",
   color: "var(--on-accent)",
   fontSize: 12,
   fontWeight: 600,

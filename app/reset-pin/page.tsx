@@ -143,7 +143,7 @@ export default function ResetPinPage() {
                 borderRadius: "var(--radius-sm)",
                 border: "none",
                 background: busy ? "var(--text-muted)" : "var(--accent)",
-                color: "#000",
+                color: "var(--on-accent)",
                 fontWeight: 600,
                 cursor: busy ? "default" : "pointer",
               }}

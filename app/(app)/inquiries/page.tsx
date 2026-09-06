@@ -271,7 +271,7 @@ function tabBtn(active: boolean): CSSProperties {
     borderRadius: "var(--radius-full)",
     border: "none",
     background: active ? "var(--accent)" : "var(--bg-card)",
-    color: active ? "#000" : "var(--text-secondary)",
+    color: active ? "var(--on-accent)" : "var(--text-secondary)",
     fontWeight: 600,
     fontSize: 14,
     cursor: "pointer",
@@ -288,7 +288,7 @@ function statusBadge(status: string): CSSProperties {
     fontSize: 11,
     fontWeight: 600,
     background: answered ? "var(--success-subtle)" : "var(--warning)",
-    color: answered ? "var(--success)" : "#000",
+    color: answered ? "var(--success)" : "var(--on-accent)",
   };
 }
 
@@ -323,7 +323,7 @@ function submitBtnStyle(b: boolean): CSSProperties {
     borderRadius: "var(--radius-sm)",
     border: "none",
     background: b ? "var(--text-muted)" : "var(--accent)",
-    color: "#000",
+    color: "var(--on-accent)",
     fontWeight: 600,
     fontSize: 15,
     cursor: b ? "default" : "pointer",
