@@ -70,10 +70,10 @@ export default function LandingPage() {
             </ol>
           </Sheet>
 
-          <Sheet eyebrow="WHAT YOU GET" headline={<>숫자 하나가 아니라 <span className="mark">흐름을</span> 봅니다</>}>
+          <Sheet point eyebrow="WHAT YOU GET" headline={<>숫자 하나가 아니라 <span className="mark">흐름을</span> 봅니다</>}>
             <div style={{ display: "grid", gap: 12, marginTop: 18 }}>
               {FEATURES.map((f) => (
-                <div key={f.name} className="card--point" style={featureStyle}>
+                <div key={f.name} style={featureStyle}>
                   <strong style={{ fontSize: "0.92rem" }}>{f.name}</strong>
                   <p style={stepDescStyle}>{f.desc}</p>
                 </div>
@@ -203,11 +203,7 @@ const stepDescStyle: CSSProperties = {
 
 const featureStyle: CSSProperties = {
   padding: "15px 17px",
-  // ⚠️ 좌상·우하는 .card--point 가 깎는다 (app/elements.css). 인라인
-  // borderRadius shorthand 를 쓰면 네 모서리를 모두 세워 그 깎임을 덮어쓴다 —
-  // 그래서 남는 두 모서리만 longhand 로 적는다
-  borderTopRightRadius: "var(--radius-sm)",
-  borderBottomLeftRadius: "var(--radius-sm)",
+  borderRadius: "var(--radius-sm)",
   background: "var(--bg-secondary)",
   border: "1px solid var(--border-subtle)",
 };
