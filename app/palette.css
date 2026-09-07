@@ -23,6 +23,8 @@
   --accent: #116271;
   --accent-hover: #0d5866;
   --accent-subtle: rgba(17, 98, 113, 0.08);
+  --accent-ink: #116271;
+  --gold-soft: rgba(201, 168, 76, 0.12);
   --point: #c9a84c;
   --point-subtle: rgba(201, 168, 76, 0.12);
   --point-ink: #725c1a;
@@ -53,6 +55,8 @@
   --accent: #5fb8c9;
   --accent-hover: #7dcbd9;
   --accent-subtle: rgba(95, 184, 201, 0.16);
+  --accent-ink: #5fb8c9;
+  --gold-soft: rgba(232, 201, 106, 0.14);
   --point: #e8c96a;
   --point-subtle: rgba(232, 201, 106, 0.14);
   --point-ink: #e8c96a;

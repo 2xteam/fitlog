@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
+// globals.css **다음 줄**이라야 한다 — .sheet--point 가 특이도 같은
+// .sheet { border-radius: var(--radius-lg) } 를 이겨야 한다.
+// 생성 파일이다: myjane/design/elements.css → npm run elements -- --write
+import "./elements.css";
 
 export const metadata: Metadata = {
   title: "FitLog",

@@ -49,6 +49,26 @@ cd C:/Dev/myjane && npm run design:check
 - `components/Sheet.tsx` 는 다섯 앱에 **복사본**이다. 고치면 다섯 앱을 함께 고친다
 - 아이콘은 여섯 개가 한 가족이다. 하나만 바꾸지 않는다
 
+### 포인트 요소 넷 — `app/elements.css` 는 생성 파일이다
+
+고치지 말 것. 원본은 포털에 하나뿐이다.
+
+```
+myjane/design/elements.css                        ← 여기만 고친다
+cd C:/Dev/myjane && npm run elements -- --write    ← 여섯 앱이 함께 갱신된다
+```
+
+| 요소 | 쓰는 법 |
+|---|---|
+| 스크롤 진행 띠 | sticky 헤더 안에 `<ScrollProgress />` 하나 |
+| 형광 밑줄 `.mark` | 밝은 시트 헤드라인 **한 화면에 한 군데** |
+| 프로세스 타임라인 `.flow` | 3단계 이상 · 순서가 중요할 때만. 가운데 정렬 시트면 `.flow--center` |
+| 카드 라운딩 포인트 | `<Sheet point>` — 히어로 · 마무리 CTA. **한 화면에 최대 2개** |
+
+`cd C:/Dev/myjane && npm run design:check` 의 규칙 G 가 남발을 막는다.
+어디에 넣고 어디에 넣지 않는지는
+→ my-obsidian-vault / 20-Design/여섯 앱 디자인 시스템.md
+
 ## 색을 바꿀 때
 
 **`app/palette.css` 를 직접 고치지 말 것.** 생성 파일이다.
