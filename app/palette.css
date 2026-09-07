@@ -28,6 +28,8 @@
   --point: #c9a84c;
   --point-subtle: rgba(201, 168, 76, 0.12);
   --point-ink: #725c1a;
+  --progress-from: #116271;
+  --progress-to: #a8842f;
   --gold: #c9a84c;
   --on-accent: #ffffff;
   --danger: #e0455f;
@@ -60,6 +62,8 @@
   --point: #e8c96a;
   --point-subtle: rgba(232, 201, 106, 0.14);
   --point-ink: #e8c96a;
+  --progress-from: #5fb8c9;
+  --progress-to: #e8c96a;
   --gold: #ead58c;
   --on-accent: #04161b;
   --danger: #ff7a90;

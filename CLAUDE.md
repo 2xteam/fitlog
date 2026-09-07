@@ -60,7 +60,7 @@ cd C:/Dev/myjane && npm run elements -- --write    ← 여섯 앱이 함께 갱�
 
 | 요소 | 쓰는 법 |
 |---|---|
-| 스크롤 진행 띠 | sticky 헤더 안에 `<ScrollProgress />` 하나 |
+| 스크롤 진행 띠 | **모든 페이지** — `TopNav.tsx` 의 `.topnav-bar` 안(앱 화면) · `app/page.tsx`(소개). `.topnav` 아래 변에 붙이면 햄버거를 열 때 내려간다 |
 | 형광 밑줄 `.mark` | 밝은 시트 헤드라인 **한 화면에 한 군데** |
 | 프로세스 타임라인 `.flow` | 3단계 이상 · 순서가 중요할 때만. 가운데 정렬 시트면 `.flow--center` |
 | 라운딩 포인트 | `<Sheet point>` — 히어로 · 마무리 CTA · **카드를 담은 시트**. 깎는 건 부모뿐, 안쪽 카드는 그대로 둔다 |
