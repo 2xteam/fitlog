@@ -14,7 +14,7 @@ export function SiteFooter() {
           my<span>jane</span>
         </a>
       </p>
-      <p style={copyStyle}>@2026 MyJane All rights reserved</p>
+      <p style={copyStyle}>@2026 myjane All rights reserved</p>
     </footer>
   );
 }

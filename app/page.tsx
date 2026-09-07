@@ -102,7 +102,7 @@ export default function LandingPage() {
                 my<span>jane</span>
               </a>
             </p>
-            <p style={footerLineStyle}>@2026 MyJane All rights reserved</p>
+            <p style={footerLineStyle}>@2026 myjane All rights reserved</p>
           </div>
         </footer>
       </div>
