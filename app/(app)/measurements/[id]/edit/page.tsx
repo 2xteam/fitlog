@@ -210,7 +210,6 @@ export default function EditMeasurementPage() {
     <div>
       <Sheet
         tone="dark"
-        ornament
         eyebrow="EDIT"
         headline={
           <>

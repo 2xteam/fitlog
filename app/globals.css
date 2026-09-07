@@ -903,16 +903,6 @@ a[style*="var(--bg-card)"]:hover {
   color: rgba(230, 244, 246, 0.72);
 }
 
-/* 실(結) 장식 */
-.sheet-ornament {
-  position: absolute;
-  top: -26px;
-  right: -34px;
-  width: 210px;
-  height: 120px;
-  pointer-events: none;
-}
-
 /* 상태 알약 배지 */
 .pill {
   display: inline-flex;

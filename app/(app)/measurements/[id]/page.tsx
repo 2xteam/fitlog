@@ -93,7 +93,6 @@ export default function MeasurementDetailPage() {
     <div>
       <Sheet
         tone="dark"
-        ornament
         eyebrow="RECORD"
         headline={dateText}
         lead={

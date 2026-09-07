@@ -32,7 +32,6 @@ export default function LandingPage() {
         <main className="page">
           <Sheet
             tone="dark"
-            ornament
             eyebrow="FITLOG · BODY & BLOOD"
             headline={
               <>

@@ -94,7 +94,6 @@ export default function MyPage() {
     <div>
       <Sheet
         tone="dark"
-        ornament
         eyebrow="MY PROFILE"
         headline={
           <>

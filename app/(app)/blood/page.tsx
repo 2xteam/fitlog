@@ -91,7 +91,6 @@ export default function BloodPage() {
     <div>
       <Sheet
         tone="dark"
-        ornament
         eyebrow="BLOOD"
         headline={
           <>

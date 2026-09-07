@@ -89,7 +89,6 @@ export default function BloodDetailPage() {
     <div>
       <Sheet
         tone="dark"
-        ornament
         eyebrow={dateText}
         headline="검사 결과"
         lead={

@@ -10,7 +10,6 @@ export function Sheet({
   eyebrow,
   headline,
   lead,
-  ornament = false,
   center = false,
   children,
 }: {
@@ -18,7 +17,6 @@ export function Sheet({
   eyebrow?: string;
   headline?: ReactNode;
   lead?: ReactNode;
-  ornament?: boolean;
   center?: boolean;
   children?: ReactNode;
 }) {
@@ -33,7 +31,6 @@ export function Sheet({
 
   return (
     <section className={cls}>
-      {ornament ? <Ornament light={tone === "dark"} /> : null}
       {eyebrow || headline || lead ? (
         <div style={center ? { textAlign: "center" } : undefined}>
           {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
@@ -43,19 +40,5 @@ export function Sheet({
       ) : null}
       {children}
     </section>
-  );
-}
-
-/** 실(結)을 은유한 얇은 곡선 — 여백에만 놓는다 */
-export function Ornament({ light = false }: { light?: boolean }) {
-  const stroke = light ? "rgba(150,205,216,0.22)" : "rgba(17,98,113,0.14)";
-  return (
-    <svg className="sheet-ornament" viewBox="0 0 210 120" aria-hidden="true">
-      <g fill="none" stroke={stroke} strokeWidth="1">
-        <ellipse cx="120" cy="48" rx="105" ry="34" />
-        <ellipse cx="120" cy="48" rx="76" ry="20" />
-      </g>
-      <circle cx="200" cy="42" r="2.5" fill="#c9a84c" opacity="0.7" />
-    </svg>
   );
 }

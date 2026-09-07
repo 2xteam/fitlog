@@ -351,7 +351,6 @@ export default function NewBloodPage() {
       <div>
         <Sheet
           tone="dark"
-          ornament
           eyebrow="NEW RECORD"
           headline={
             <>
@@ -435,7 +434,6 @@ export default function NewBloodPage() {
     <div>
       <Sheet
         tone="dark"
-        ornament
         eyebrow={many ? `REVIEW ${index + 1} / ${queue.length}` : "REVIEW"}
         headline="확인하고 저장"
         lead={

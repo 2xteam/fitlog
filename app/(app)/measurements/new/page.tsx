@@ -336,7 +336,6 @@ export default function NewMeasurementPage() {
     return (
       <Sheet
         tone="dark"
-        ornament
         eyebrow="PROFILE REQUIRED"
         headline={
           <>
@@ -367,7 +366,6 @@ export default function NewMeasurementPage() {
       <div>
         <Sheet
           tone="dark"
-          ornament
           eyebrow="NEW RECORD"
           headline={
             <>
@@ -549,7 +547,6 @@ export default function NewMeasurementPage() {
     <div>
       <Sheet
         tone="dark"
-        ornament
         eyebrow={many ? `REVIEW ${index + 1} / ${queue.length}` : "REVIEW"}
         headline={
           <>

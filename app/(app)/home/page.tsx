@@ -52,7 +52,6 @@ export default function HomePage() {
     <div>
       <Sheet
         tone="dark"
-        ornament
         eyebrow="FITLOG"
         headline={
           <>

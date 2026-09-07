@@ -119,7 +119,6 @@ export default function InbodyPage() {
     <div>
       <Sheet
         tone="dark"
-        ornament
         eyebrow="INBODY"
         headline={
           <>
