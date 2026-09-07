@@ -24,11 +24,51 @@ const UserSchema = new Schema(
     pinResetToken: { type: String },
     pinResetExpires: { type: Date },
 
-    // ── 이메일 + 비밀번호 계열 (2hbk) ──
+    /*
+      ── 이메일 + 비밀번호 ──
+
+      ⚠️ **`email` 을 `required` 로 바꾸지 말 것.**
+      여섯 앱이 이 컬렉션 하나를 공유하고, 전화번호만 있는 계정이 아직 남아 있다.
+      여기서 필수로 걸면 그 계정들의 `user.save()` 가
+      `User validation failed: email` 로 터진다 — 다른 앱이 `lastLoginAt` 만
+      갱신하려 해도 마찬가지다. **FitLog 에서 실제로 그랬다.**
+
+      이메일을 필수로 받는 것은 **포털의 가입 화면과 `/api/auth/register` 에서만**
+      강제한다. 스키마는 선택으로 둔다.
+      → my-obsidian-vault / 30-Patterns/인증과 세션 공유.md
+    */
     email: { type: String, trim: true, lowercase: true, default: null },
     password: { type: String, default: null },
     passwordResetToken: { type: String },
     passwordResetExpires: { type: Date },
+
+    /**
+     * ── 이메일 인증 (여섯 앱 공용) ──
+     *
+     * `emailVerified` 는 원래 2hbk 만 쓰던 필드다. 포털이 인증을 하게 되면서
+     * 공용으로 올려 썼다 — 값의 의미는 그대로라 2hbk 쪽 동작은 바뀌지 않는다.
+     *
+     * 토큰은 `pinResetToken` 과 같은 모양이다(30분 만료, **한 번 쓰면 폐기**).
+     *
+     * ⚠️ **인증은 로그인 조건이 아니다.** 메일이 늦거나 스팸함에 들어간 사람이
+     * 갇히기 때문에, 미인증 상태로도 로그인은 되고 안내만 띄운다.
+     *
+     * 발급·검증은 **포털에만** 있다. 이 앱은 값을 읽어 배너를 띄울 뿐이다 —
+     * 여섯 앱이 각자 물으면 같은 사람에게 여섯 번 묻게 된다.
+     */
+    emailVerified: { type: Boolean, default: false },
+    emailToken: { type: String },
+    emailTokenExpires: { type: Date },
+    /** 인증 메일 재발송 쿨다운(60초)의 기준 시각. 없으면 메일 폭탄이 된다 */
+    emailTokenSentAt: { type: Date },
+    /** 이 시각 전에는 안내를 다시 띄우지 않는다. 하루에 한 번만 묻는다 */
+    emailPromptSnoozedUntil: { type: Date },
+    /**
+     * 아직 인증되지 않은 **새 주소**. 인증을 마치면 `email` 로 옮기고 비운다.
+     * 포털이 이미 쓰던 계정에 이메일을 나중에 받을 때 쓴다. 이 앱은 읽지 않는다.
+     * **선언은 남겨 둔다** — 한 컬렉션을 공유하므로 여기서 저장할 때 유실될 수 있다.
+     */
+    pendingEmail: { type: String, trim: true, lowercase: true, default: null },
 
     tokens: { type: Number, default: 0 },
     createdAt: { type: Date, default: Date.now },
@@ -63,7 +103,6 @@ const UserSchema = new Schema(
     userId: { type: String, default: null },
     nickname: { type: String, trim: true, default: null },
     profileImage: { type: String, default: null },
-    emailVerified: { type: Boolean, default: false },
     followApprovalRequired: { type: Boolean, default: false },
   },
   { versionKey: false },

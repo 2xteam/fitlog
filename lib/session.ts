@@ -1,4 +1,17 @@
-export type SessionUser = { id: string; name: string; phone: string };
+export type SessionUser = {
+  id: string;
+  name: string;
+  phone: string;
+  /**
+   * 포털이 쿠키에 함께 넣어 두는 값. 이 앱은 **읽기만** 한다 —
+   * 이메일이 없는 계정에 안내 띠를 띄울지 판단하는 데 쓴다
+   * → components/EmailBanner.tsx
+   *
+   * ⚠️ 세션을 다시 저장할 때 이 값을 빠뜨리지 말 것. 아래 `token` 과 같은 이유다.
+   * `saveSession(json.user)` 처럼 받은 객체를 그대로 넘기면 안전하다.
+   */
+  email?: string;
+};
 
 export const SESSION_KEY = "snap_user";
 

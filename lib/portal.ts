@@ -47,3 +47,14 @@ export function signupUrl(next = "/home"): string {
   if (!usesPortal()) return `/register?next=${encodeURIComponent(path)}`;
   return `${PORTAL_ORIGIN}/signup?from=${APP_KEY}&next=${encodeURIComponent(path)}`;
 }
+
+/**
+ * 이메일을 등록·인증하는 화면 — **포털에만 있다.**
+ *
+ * 이 앱에는 같은 화면을 만들지 않는다. 여섯 앱이 각자 물으면 같은 사람에게
+ * 여섯 번 묻게 된다. 여기서는 배너로 이 링크만 보여 준다
+ * → components/EmailBanner.tsx
+ */
+export function accountEmailUrl(): string {
+  return `${PORTAL_ORIGIN}/account/email`;
+}

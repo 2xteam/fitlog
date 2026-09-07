@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { EmailBanner } from "@/components/EmailBanner";
 import { Sheet } from "@/components/Sheet";
 import { clearSession } from "@/lib/session";
 import { loginUrl } from "@/lib/portal";
@@ -89,5 +90,11 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   if (session.status !== "signed-in") return null;
-  return <>{children}</>;
+  return (
+    <>
+      {/* 이메일이 없는 계정에만 뜨는 안내 띠. 아무것도 막지 않는다 */}
+      <EmailBanner />
+      {children}
+    </>
+  );
 }
