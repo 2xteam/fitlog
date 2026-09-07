@@ -932,6 +932,8 @@ a[style*="var(--bg-card)"]:hover {
   border-radius: 11px;
   font-size: 15px;
   font-weight: 700;
+  /* <a class="btn"> 이 브라우저 기본 밑줄을 받는다 */
+  text-decoration: none;
   font-family: inherit;
   cursor: pointer;
 }
