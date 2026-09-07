@@ -97,7 +97,7 @@ export default function LandingPage() {
               FitLog
             </p>
             <p style={{ margin: 0 }}>
-              <a href="https://www.myjane.co.kr" className="myjane-mark" style={{ color: "#fff" }}>
+              <a href="https://www.myjane.co.kr" className="myjane-mark" style={{ color: "var(--on-dark)" }}>
                 my<span>jane</span>
               </a>
             </p>
@@ -211,14 +211,14 @@ const featureStyle: CSSProperties = {
 const footerStyle: CSSProperties = {
   marginTop: 40,
   paddingTop: 30,
-  background: "#061a1f",
-  color: "#fff",
+  background: "var(--footer-bg)",
+  color: "var(--on-dark)",
 };
 
 const footerLineStyle: CSSProperties = {
   margin: "8px 0 0",
   fontSize: "0.78rem",
   lineHeight: 1.8,
-  color: "rgba(230,244,246,0.62)",
+  color: "var(--on-dark-faint)",
   wordBreak: "keep-all",
 };
