@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { AppIcon } from "@/components/AppIcon";
 import { loadSession, saveSession, type SessionUser } from "@/lib/session";
-import { loginUrl, usesPortal } from "@/lib/portal";
+import { loginUrl, signupUrl, usesPortal } from "@/lib/portal";
 
 function LoginForm() {
   const params = useSearchParams();
@@ -130,8 +130,8 @@ function LoginForm() {
           {busy ? "확인 중…" : "로그인"}
         </button>
         <div style={{ display: "flex", justifyContent: "center", gap: "1.5rem", flexWrap: "wrap" }}>
-          <Link
-            href="/register"
+          <a
+            href={signupUrl(next)}
             style={{
               color: "var(--accent)",
               fontSize: 14,
@@ -139,7 +139,7 @@ function LoginForm() {
             }}
           >
             회원가입
-          </Link>
+          </a>
           <Link
             href="/find-phone"
             style={{

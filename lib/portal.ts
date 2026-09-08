@@ -41,10 +41,21 @@ export function loginUrl(next = "/home", options: AuthUrlOptions = {}): string {
   return `${PORTAL_ORIGIN}/login?from=${APP_KEY}&next=${encodeURIComponent(path)}${relogin}`;
 }
 
-/** 회원가입하러 갈 주소 */
+/**
+ * 회원가입하러 갈 주소 — **언제나 포털이다.**
+ *
+ * 이 앱에는 가입 화면을 두지 않는다. 예전에는 로컬 개발용으로 `/register` 를
+ * 두고 운영에서만 포털로 보냈는데, 그 화면이 운영에도 그대로 떠서
+ * **약관·개인정보 동의를 거치지 않고 계정이 만들어질 수 있었다.**
+ * 동의는 포털 가입 화면과 포털 가입 라우트에서만 받는다.
+ * → my-obsidian-vault / 50-Plans/C 법적 페이지.md
+ *
+ * 로컬 개발에서도 포털로 나간다. 세션 쿠키는 `.myjane.co.kr` 도메인이라
+ * localhost 로는 돌아오지 않으므로, 로컬에서 계정이 필요하면 운영 포털에서
+ * 만든 뒤 그 계정으로 쓴다.
+ */
 export function signupUrl(next = "/home"): string {
   const path = safePath(next);
-  if (!usesPortal()) return `/register?next=${encodeURIComponent(path)}`;
   return `${PORTAL_ORIGIN}/signup?from=${APP_KEY}&next=${encodeURIComponent(path)}`;
 }
 
