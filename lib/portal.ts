@@ -60,6 +60,24 @@ export function signupUrl(next = "/home"): string {
 }
 
 /**
+ * 분리 동의 화면 — **포털에만 있다.**
+ *
+ * 건강정보·국외 이전·법정대리인 동의는 가입 동의와 따로 받는다. 국외 이전은
+ * FitLog 만의 일이 아니라 SnapWord·SnapNote 사진도 같은 경로로 나가므로,
+ * 앱마다 화면을 두면 같은 사람에게 세 번 묻는다.
+ *
+ * `next` 로 돌아올 주소를 넘긴다 — 동의를 마치면 쓰려던 자리로 돌려보낸다.
+ * → my-obsidian-vault / 50-Plans/C 법적 페이지.md
+ */
+export function consentUrl(
+  kind: "health" | "overseas" | "guardian",
+  backTo = "/home",
+): string {
+  const back = `${typeof location !== "undefined" ? location.origin : ""}${safePath(backTo)}`;
+  return `${PORTAL_ORIGIN}/account/consent/${kind}?next=${encodeURIComponent(back)}`;
+}
+
+/**
  * 회원 탈퇴 화면 — **포털에만 있다.**
  *
  * 탈퇴는 여섯 서비스 공통이라 화면도 한 곳이라야 한다. 앱마다 두면

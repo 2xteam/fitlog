@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { getUserModel } from "@/models/User";
+import { requireConsents } from "@/lib/requireConsent";
 import { readMultipartImage } from "@/lib/readMultipartImage";
 import { extractInBodyFromImage, VISION_MODEL } from "@/lib/inbodyVision";
 import { validateMeasurement, computeDerived } from "@/lib/inbody";
@@ -26,6 +27,13 @@ export async function POST(req: Request) {
 
   const parsed = await readMultipartImage(req);
   if (!parsed.ok) return parsed.response;
+
+  /*
+    분리 동의를 **서버에서** 본다. 화면에서만 막으면 이 라우트를
+    직접 부르는 쪽이 그대로 통과한다. 없으면 412 → lib/requireConsent.ts
+  */
+  const consentDenied = await requireConsents(parsed.userId, ["health", "overseas"]);
+  if (consentDenied) return consentDenied;
 
   const { buffer, mimeType, userId } = parsed;
 
