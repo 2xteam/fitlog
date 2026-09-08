@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Sheet } from "@/components/Sheet";
 import { NoteField } from "@/components/RecordNote";
+import { goConsentIfNeeded } from "@/lib/consentGate";
 import { loadSession, type SessionUser } from "@/lib/session";
 import { useProfile } from "@/lib/useProfile";
 import { checkUploadSize, shrinkImageForUpload } from "@/lib/clientImageResize";
@@ -125,6 +126,12 @@ export default function NewMeasurementPage() {
           error?: string;
           message?: string;
         };
+
+        /*
+          분리 동의가 없다. 문장만 띄우면 어디서 동의하는지 알 수 없어서
+          동의 화면으로 보낸다. 마치면 이 자리로 돌아온다.
+        */
+        if (res.status === 412 && goConsentIfNeeded(json, "/measurements/new")) return;
 
         // 프로필이 없으면 더 진행할 의미가 없다
         if (res.status === 428) {

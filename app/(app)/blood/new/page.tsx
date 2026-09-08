@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Sheet } from "@/components/Sheet";
 import { showToast } from "@/components/Toast";
 import { NoteField } from "@/components/RecordNote";
+import { goConsentIfNeeded } from "@/lib/consentGate";
 import { loadSession, type SessionUser } from "@/lib/session";
 import { checkUploadSize, shrinkImageForUpload } from "@/lib/clientImageResize";
 import { matchAnalyte } from "@/lib/bloodCatalog";
@@ -126,6 +127,9 @@ export default function NewBloodPage() {
 
         const res = await fetch("/api/blood/extract", { method: "POST", body: fd });
         const json = (await res.json()) as Record<string, unknown>;
+
+        /* 분리 동의가 없다 — 동의 화면으로 보낸다 */
+        if (res.status === 412 && goConsentIfNeeded(json, "/blood/new")) return;
 
         if (!res.ok || !json.ok) {
           fails.push({
