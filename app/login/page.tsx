@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { AppIcon } from "@/components/AppIcon";
 import { loadSession, saveSession, type SessionUser } from "@/lib/session";
-import { loginUrl, signupUrl, usesPortal } from "@/lib/portal";
+import { loginUrl, signupUrl, findPhoneUrl, forgotPinUrl, usesPortal } from "@/lib/portal";
 
 function LoginForm() {
   const params = useSearchParams();
@@ -140,8 +140,8 @@ function LoginForm() {
           >
             회원가입
           </a>
-          <Link
-            href="/find-phone"
+          <a
+            href={findPhoneUrl()}
             style={{
               color: "var(--text-secondary)",
               fontSize: 14,
@@ -149,9 +149,9 @@ function LoginForm() {
             }}
           >
             전화번호 찾기
-          </Link>
-          <Link
-            href="/forgot-pin"
+          </a>
+          <a
+            href={forgotPinUrl()}
             style={{
               color: "var(--text-secondary)",
               fontSize: 14,
@@ -159,7 +159,7 @@ function LoginForm() {
             }}
           >
             PIN 찾기
-          </Link>
+          </a>
         </div>
         {msg ? (
           <p style={{ margin: "1rem 0 0", color: "var(--danger)", fontSize: 13 }}>{msg}</p>

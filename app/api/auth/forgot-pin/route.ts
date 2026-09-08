@@ -1,77 +1,25 @@
-import crypto from "node:crypto";
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import { normalizePhone } from "@/lib/phone";
-import { getUserModel } from "@/models/User";
-import { sendMail } from "@/lib/mail";
 
 export const runtime = "nodejs";
 
-export async function POST(req: Request) {
-  try {
-    let body: { phone?: string; email?: string };
-    try {
-      body = await req.json();
-    } catch {
-      return NextResponse.json(
-        { ok: false, error: "JSON 본문이 필요합니다." },
-        { status: 400 },
-      );
-    }
-
-    const phone = typeof body.phone === "string" ? normalizePhone(body.phone) : "";
-    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-
-    if (!phone || !email) {
-      return NextResponse.json(
-        { ok: false, error: "전화번호와 이메일을 입력해 주세요." },
-        { status: 400 },
-      );
-    }
-
-    await connectDB();
-    const User = getUserModel();
-    const user = await User.findOne({ phone, email }).exec();
-
-    if (!user) {
-      return NextResponse.json(
-        { ok: false, error: "전화번호와 이메일이 일치하는 계정이 없습니다." },
-        { status: 404 },
-      );
-    }
-
-    const token = crypto.randomBytes(32).toString("hex");
-    const expires = new Date(Date.now() + 30 * 60 * 1000);
-
-    user.pinResetToken = token;
-    user.pinResetExpires = expires;
-    await user.save();
-
-    const origin = process.env.NEXT_PUBLIC_BASE_URL ?? "https://snapword.myjane.co.kr";
-    const resetUrl = `${origin}/reset-pin-email?token=${token}`;
-
-    await sendMail(
-      email,
-      "[FitLog] PIN 변경 요청",
-      `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;">
-        <h2 style="color:#116271;margin:0 0 16px;">FitLog</h2>
-        <p>안녕하세요, <strong>${user.name}</strong>님.</p>
-        <p>아래 버튼을 눌러 PIN을 변경할 수 있습니다.</p>
-        <div style="text-align:center;margin:24px 0;">
-          <a href="${resetUrl}" style="display:inline-block;padding:14px 32px;background:#116271;color:#ffffff;font-weight:700;border-radius:12px;text-decoration:none;font-size:15px;">
-            PIN 변경하기
-          </a>
-        </div>
-        <p style="color:#888;font-size:13px;">이 링크는 30분 동안 유효합니다.</p>
-        <p style="color:#888;font-size:13px;">본인이 요청하지 않으셨다면 이 메일을 무시하셔도 됩니다.</p>
-        <p style="color:#aaa;font-size:11px;margin-top:24px;word-break:break-all;">링크가 동작하지 않으면 아래 URL을 브라우저에 붙여넣기 하세요:<br/>${resetUrl}</p>
-      </div>`,
-    );
-
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
-  }
+/**
+ * 이 앱의 로컬 비밀번호·PIN 재설정 라우트는 **닫혔다.**
+ *
+ * 계정 찾기·재설정은 포털(www.myjane.co.kr)에서만 한다. 메일을 보내는 자리가
+ * 여러 곳이면 문구·쿨다운·계정 노출 대응이 갈린다. 실제로 갈려 있었다 —
+ * 이 사본에는 재발송 쿨다운이 없었고, 계정이 없으면 404 로 **어떤 이메일이
+ * 가입돼 있는지 알려줬다.**
+ *
+ * 404 가 아니라 410 을 준다 — 없는 주소가 아니라 **일부러 없앤** 주소다.
+ * → myjane/app/api/auth/forgot-pin · my-obsidian-vault / 50-Plans/C 법적 페이지.md
+ */
+export async function POST() {
+  return NextResponse.json(
+    {
+      ok: false,
+      error:
+        "계정 찾기는 myjane 에서 진행합니다. https://www.myjane.co.kr/forgot-pin 을 이용해 주세요.",
+    },
+    { status: 410 },
+  );
 }

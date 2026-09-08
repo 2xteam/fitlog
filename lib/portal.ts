@@ -60,6 +60,22 @@ export function signupUrl(next = "/home"): string {
 }
 
 /**
+ * 계정 찾기 화면 — **포털에만 있다.**
+ *
+ * 예전에는 앱마다 사본이 있었고 메일도 각자 보냈다. 그 사본들은 재발송
+ * 쿨다운이 없었고 계정이 없으면 404 로 **어떤 이메일이 가입돼 있는지
+ * 알려줬다.** 메일을 보내는 자리가 여러 곳이면 그런 대응이 갈린다.
+ * → my-obsidian-vault / 50-Plans/C 법적 페이지.md
+ */
+export function findPhoneUrl(): string {
+  return `${PORTAL_ORIGIN}/find-phone`;
+}
+
+export function forgotPinUrl(): string {
+  return `${PORTAL_ORIGIN}/forgot-pin`;
+}
+
+/**
  * 분리 동의 화면 — **포털에만 있다.**
  *
  * 건강정보·국외 이전·법정대리인 동의는 가입 동의와 따로 받는다. 국외 이전은
