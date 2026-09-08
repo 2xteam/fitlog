@@ -60,6 +60,18 @@ export function signupUrl(next = "/home"): string {
 }
 
 /**
+ * 회원 탈퇴 화면 — **포털에만 있다.**
+ *
+ * 탈퇴는 여섯 서비스 공통이라 화면도 한 곳이라야 한다. 앱마다 두면
+ * "여기서 탈퇴하면 여섯 곳이 다 닫힙니다" 를 여섯 번 다르게 쓰게 된다.
+ * 여기서는 my 화면에 이 링크만 보여 준다.
+ * → my-obsidian-vault / 50-Plans/C 법적 페이지.md
+ */
+export function withdrawUrl(): string {
+  return `${PORTAL_ORIGIN}/account/withdraw`;
+}
+
+/**
  * 이메일을 등록·인증하는 화면 — **포털에만 있다.**
  *
  * 이 앱에는 같은 화면을 만들지 않는다. 여섯 앱이 각자 물으면 같은 사람에게

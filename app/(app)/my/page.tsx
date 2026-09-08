@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AccountWithdrawLink } from "@/components/AccountWithdrawLink";
 import { Sheet } from "@/components/Sheet";
 import { clearSession, loadSession, type SessionUser } from "@/lib/session";
 import { useProfile } from "@/lib/useProfile";
@@ -229,6 +230,8 @@ export default function MyPage() {
           </button>
         </div>
       </Sheet>
+
+      <AccountWithdrawLink />
     </div>
   );
 }
