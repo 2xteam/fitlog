@@ -41,3 +41,6 @@ yarn-error.log*
 certificates
 .vercel
 .env*
+
+# 인스타 카드 PNG 는 export-cards.mjs 로 다시 만들 수 있다 — 저장소에 두지 않는다
+docs/marketing/cards/
