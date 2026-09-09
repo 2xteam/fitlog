@@ -139,6 +139,15 @@ export default function BloodPage() {
               </p>
             ) : (
               <div style={{ marginTop: 14, display: "grid", gap: 14 }}>
+                {/* 셋 이상이면 벗어난 항목만으로 레이더를 하나 더 — 얼마나 벗어났는지 한눈에 (2026-09-09) */}
+                {flagged.length >= 3 ? (
+                  <BloodRadar
+                    analytes={flagged.map((f) => f.analyte)}
+                    row={latest}
+                    testedAt={fmtDate(latest.testedAt)}
+                    compact
+                  />
+                ) : null}
                 {flagged.map((f) => (
                   <FlaggedCard
                     key={f.analyte.code}
