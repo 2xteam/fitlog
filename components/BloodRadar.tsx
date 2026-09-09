@@ -4,30 +4,31 @@ import { gaugeFor, isConcerning, resultOf, statusOf, STATUS_LABELS, type BloodRo
 import type { Analyte } from "@/lib/bloodCatalog";
 
 /**
- * 피검사 핵심 항목 레이더 — **항목 수만큼 축을 가진 다각형** (2026-09-09 사용자 요청).
+ * 피검사 항목 레이더 — **항목 수만큼 축을 가진 다각형** (2026-09-09 사용자 요청).
  *
- * 인바디 삼각 레이더와 같은 읽는 법이다: 음영 띠가 참고구간, 안쪽이면 낮음, 바깥이면 높음.
- * 참고구간 고리는 **모든 축에서 같은 폭**이다 (2026-09-09 사용자 결정 — 축마다 눈금이 다르게
- * 그리면 도형이 삐뚤어져 보인다). 각 축의 참고구간 하한을 R_IN, 상한을 R_OUT 에 고정 매핑하고
- * 내 값만 그 비율로 찍는다 — 인바디 삼각과 같은 방식이다. 축 사이의 실제 크기 비교는 애초에
- * 의미가 없고, 각 축에서 **띠 기준 안·밖과 얼마나 벗어났는지**만 읽는다.
- *   양쪽 참고치      t = (값-하한)/(상한-하한)
- *   상한만 (<= X)    t = 값/X            — 0 이 하한 자리
- *   하한만 (>= X)    t = (값-X)/(0.6X)   — 바깥은 정상이므로 위험색을 쓰지 않는다
+ * 참고구간은 **축마다 그 축 위에 놓인 라운드 막대**로 그린다 (2026-09-09 사용자 결정).
+ * 인바디처럼 꼭짓점을 이은 고리(띠)로 그리면 "특정 값 이상/이하가 정상"인 한쪽 참고치를
+ * 표현할 수 없다 — 띠는 늘 안쪽·바깥쪽 경계가 둘 다 있어야 하기 때문이다. 막대는 다르다:
  *
+ *   양쪽 참고치 (a~b)   막대 R_IN ~ R_OUT            값: 하한→R_IN, 상한→R_OUT 비율
+ *   상한만 (<= X)       막대 중심(R_0) ~ R_OUT       값: 0→R_0, X→R_OUT
+ *   하한만 (>= X)       막대 R_IN ~ 축 끝(R_MAX)     값: X→R_IN, 1.6X→R_OUT (그 위는 끝까지)
+ *
+ * 점이 막대 안이면 정상, 막대 밖이면 벗어난 것이고 막대에서 멀수록 많이 벗어난 것이다.
+ * 내 값들은 선으로 잇는다(전부 있으면 닫힌 다각형, 일부면 열린 선, 하나면 점만).
  * 이번 검사에 없는 항목은 축선을 점선으로, 값을 `—` 로 비워 두고 도형은 유지한다.
- * 값이 있는 축이 전부면 닫힌 다각형, 일부면 열린 선, 하나면 점만 그린다.
- * eGFR·HDL 처럼 높을수록 좋은 항목은 바깥으로 나가도 위험이 아니다 — 색으로 가른다.
+ * eGFR·HDL 처럼 높을수록 좋은 항목은 바깥으로 나가도 위험색이 아니다.
  *
  * 막대(`BloodGauge`)는 상세 화면과 "벗어난 항목" 카드에 그대로 남는다.
  */
 
 const R = 80;
-const R_MIN = 0.16 * R;
-const R_MAX = 0.93 * R;
-/** 참고구간 하한·상한이 놓이는 반지름 — 모든 축 공통 */
-const R_IN = 0.46 * R;
-const R_OUT = 0.78 * R;
+const R_0 = 0.08 * R; // 상한만 있는 축의 막대 시작 (중심 근처)
+const R_MIN = 0.16 * R; // 점이 들어갈 수 있는 가장 안쪽
+const R_MAX = 0.93 * R; // 점이 나갈 수 있는 가장 바깥 · 하한만 있는 축의 막대 끝
+const R_IN = 0.46 * R; // 참고구간 하한이 놓이는 반지름
+const R_OUT = 0.78 * R; // 참고구간 상한이 놓이는 반지름
+const BAR_W = 11; // 참고구간 막대 두께
 const CX = 150;
 const CY = 124;
 
@@ -39,14 +40,22 @@ function polar(angleDeg: number, r: number): [number, number] {
   return [CX + r * Math.cos(a), CY + r * Math.sin(a)];
 }
 
-/** 참고구간 대비 위치(0=하한 · 1=상한) → 반지름. 크게 벗어나도 라벨과 겹치지 않게 가둔다 */
-const rOf = (t: number) => Math.max(R_MIN, Math.min(R_MAX, R_IN + t * (R_OUT - R_IN)));
+const clamp = (r: number) => Math.max(R_MIN, Math.min(R_MAX, r));
 
-/** 값을 참고구간 기준 0~1 로 — 한쪽만 있는 참고치도 다룬다 */
-function tOf(value: number, low: number | null, high: number | null): number | null {
-  if (low != null && high != null) return (value - low) / (high - low || 1);
-  if (high != null) return value / (high || 1);
-  if (low != null) return (value - low) / (low * 0.6 || 1);
+/** 참고구간 모양별 막대 구간과 값의 반지름 */
+function place(value: number, low: number | null, high: number | null): { barStart: number; barEnd: number; r: number } | null {
+  if (low != null && high != null) {
+    const t = (value - low) / (high - low || 1);
+    return { barStart: R_IN, barEnd: R_OUT, r: clamp(R_IN + t * (R_OUT - R_IN)) };
+  }
+  if (high != null) {
+    const t = value / (high || 1);
+    return { barStart: R_0, barEnd: R_OUT, r: clamp(R_0 + t * (R_OUT - R_0)) };
+  }
+  if (low != null) {
+    const t = (value - low) / (low * 0.6 || 1);
+    return { barStart: R_IN, barEnd: R_MAX, r: clamp(R_IN + t * (R_OUT - R_IN)) };
+  }
   return null;
 }
 
@@ -85,23 +94,21 @@ export function BloodRadar({
   const slots = analytes.map((a, i) => {
     const result = resultOf(row, a.code);
     const gauge = result ? gaugeFor(result, a) : null;
-    const t = result?.value != null && gauge ? tOf(result.value, gauge.ref.low, gauge.ref.high) : null;
+    const pos = result?.value != null && gauge ? place(result.value, gauge.ref.low, gauge.ref.high) : null;
     const status = result ? statusOf(result, a) : "unknown";
     const bad = isConcerning(status, a);
-    const tone = status === "normal" ? "var(--success)" : status === "unknown" ? "var(--text-muted)" : bad ? "var(--danger)" : "var(--warning)";
-    return { a, angle: angles[i], result, gauge, t, status, bad, tone, short: SHORT[a.code] ?? a.code };
+    const tone =
+      status === "normal" ? "var(--success)" : status === "unknown" ? "var(--text-muted)" : bad ? "var(--danger)" : "var(--warning)";
+    return { a, angle: angles[i], result, gauge, pos, status, bad, tone, short: SHORT[a.code] ?? a.code };
   });
 
-  /* 참고구간 고리 — 모든 축이 같은 반지름. 그래서 도형이 고르고, 벗어난 정도만 눈에 띈다 */
-  const bandInner = pathOf(slots.map((s) => polar(s.angle, R_IN)), true);
-  const bandOuter = pathOf(slots.map((s) => polar(s.angle, R_OUT)), true);
-
-  const withValue = slots.filter((s) => s.t != null);
-  const minePts = withValue.map((s) => polar(s.angle, rOf(s.t as number)));
+  const withValue = slots.filter((s) => s.pos);
+  const minePts = withValue.map((s) => polar(s.angle, s.pos!.r));
   const mine = minePts.length >= 2 ? pathOf(minePts, minePts.length === n) : null;
   const missing = slots.filter((s) => !s.result);
   const noRef = slots.filter((s) => s.result && !s.gauge);
   const unprinted = slots.filter((s) => s.gauge && !s.gauge.ref.printed);
+  const oneSided = slots.filter((s) => s.gauge && (s.gauge.ref.low == null || s.gauge.ref.high == null));
 
   return (
     <div>
@@ -109,12 +116,12 @@ export function BloodRadar({
         viewBox="0 0 300 240"
         style={{ width: "100%", maxWidth: 380, height: "auto", display: "block", margin: "0 auto" }}
         role="img"
-        aria-label="피검사 핵심 항목의 참고구간과 내 수치"
+        aria-label="피검사 항목별 참고구간과 내 수치"
       >
-        <path d={`${bandOuter} ${bandInner}`} fillRule="evenodd" fill="var(--success-subtle)" stroke="none" />
-        <path d={bandOuter} fill="none" stroke="var(--success)" strokeWidth="1" opacity=".45" />
-        <path d={bandInner} fill="none" stroke="var(--success)" strokeWidth="1" opacity=".45" />
+        {/* 바깥 테두리 — 축 끝을 잇는 옅은 다각형. 크기 감을 잡는 틀일 뿐 의미는 없다 */}
+        <path d={pathOf(slots.map((s) => polar(s.angle, R)), true)} fill="none" stroke="var(--border-subtle)" strokeWidth="1" />
 
+        {/* 축선 — 값이 없는 축은 점선 */}
         {slots.map((s) => {
           const [x, y] = polar(s.angle, R);
           return (
@@ -126,15 +133,30 @@ export function BloodRadar({
               y2={y}
               stroke="var(--border)"
               strokeWidth="1"
-              strokeDasharray={s.t != null ? undefined : "3 3"}
+              strokeDasharray={s.pos ? undefined : "3 3"}
             />
           );
         })}
 
+        {/* 참고구간 막대 — 축 위에 놓인 라운드 막대. 한쪽 참고치는 중심에서 시작하거나 끝까지 간다 */}
+        {slots.map((s) => {
+          if (!s.pos) return null;
+          const [x1, y1] = polar(s.angle, s.pos.barStart);
+          const [x2, y2] = polar(s.angle, s.pos.barEnd);
+          return (
+            <g key={`bar-${s.a.code}`}>
+              <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="var(--success)" strokeWidth={BAR_W + 2} strokeLinecap="round" opacity=".35" />
+              <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="var(--success-subtle)" strokeWidth={BAR_W} strokeLinecap="round" />
+            </g>
+          );
+        })}
+
+        {/* 내 수치 — 점을 잇는 선 */}
         {mine ? (
           <path
             d={mine}
             fill={minePts.length === n ? "var(--accent-subtle)" : "none"}
+            fillOpacity=".55"
             stroke="var(--accent)"
             strokeWidth="2.2"
             strokeLinejoin="round"
@@ -142,15 +164,17 @@ export function BloodRadar({
           />
         ) : null}
         {slots.map((s) => {
-          if (s.t == null) return null;
-          const [x, y] = polar(s.angle, rOf(s.t));
-          return <circle key={`pt-${s.a.code}`} cx={x} cy={y} r="4" fill={s.tone} stroke="var(--bg-card)" strokeWidth="1.5" />;
+          if (!s.pos) return null;
+          const [x, y] = polar(s.angle, s.pos.r);
+          return <circle key={`pt-${s.a.code}`} cx={x} cy={y} r="4.5" fill={s.tone} stroke="var(--bg-card)" strokeWidth="1.5" />;
         })}
 
+        {/* 라벨 + 값 */}
         {slots.map((s) => {
           const [lx, ly] = polar(s.angle, R + 24);
           const anchor = anchorFor(s.angle);
           const value = s.result?.value;
+          const unit = unitFor(s.result?.unit ?? s.a.unit);
           return (
             <g key={`lb-${s.a.code}`}>
               <text x={lx} y={ly - 3} fontSize="10.5" fontWeight="700" textAnchor={anchor} fill="var(--text-secondary)">
@@ -165,10 +189,10 @@ export function BloodRadar({
                 fill={value == null ? "var(--text-muted)" : s.status === "normal" ? "var(--text-primary)" : s.tone}
               >
                 {value == null ? "—" : value}
-                {value == null || !unitFor(s.result?.unit ?? s.a.unit) ? null : (
+                {value == null || !unit ? null : (
                   <tspan fontSize="8" fontWeight="500" fill="var(--text-muted)">
                     {" "}
-                    {unitFor(s.result?.unit ?? s.a.unit)}
+                    {unit}
                   </tspan>
                 )}
               </text>
@@ -178,35 +202,38 @@ export function BloodRadar({
       </svg>
 
       {compact ? null : (
-      <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(n, 5)}, 1fr)`, gap: 8, marginTop: 14 }}>
-        {slots.map((s) => (
-          <div key={`c-${s.a.code}`} style={{ padding: "10px 6px", borderRadius: 12, background: "var(--bg-secondary)", textAlign: "center" }}>
-            <p className="field-hint" style={{ margin: 0 }}>
-              {s.short}
-            </p>
-            <p style={{ margin: "3px 0 0", fontSize: "0.82rem", fontWeight: 800, color: s.result ? s.tone : "var(--text-muted)" }}>
-              {s.result ? STATUS_LABELS[s.status] : "기록 없음"}
-            </p>
-            <p className="field-hint" style={{ margin: "2px 0 0", fontSize: 10.5 }}>
-              {s.gauge ? (s.gauge.ref.text ?? refLabel(s.gauge.ref.low, s.gauge.ref.high)) : s.result ? "참고치 없음" : "이번 검사에 없어요"}
-              {s.result && unitFor(s.result.unit ?? s.a.unit) === "" ? ` ${s.result.unit ?? s.a.unit}` : ""}
-            </p>
-          </div>
-        ))}
-      </div>
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(n, 5)}, 1fr)`, gap: 8, marginTop: 14 }}>
+          {slots.map((s) => (
+            <div key={`c-${s.a.code}`} style={{ padding: "10px 6px", borderRadius: 12, background: "var(--bg-secondary)", textAlign: "center" }}>
+              <p className="field-hint" style={{ margin: 0 }}>
+                {s.short}
+              </p>
+              <p style={{ margin: "3px 0 0", fontSize: "0.82rem", fontWeight: 800, color: s.result ? s.tone : "var(--text-muted)" }}>
+                {s.result ? STATUS_LABELS[s.status] : "기록 없음"}
+              </p>
+              <p className="field-hint" style={{ margin: "2px 0 0", fontSize: 10.5 }}>
+                {s.gauge ? (s.gauge.ref.text ?? refLabel(s.gauge.ref.low, s.gauge.ref.high)) : s.result ? "참고치 없음" : "이번 검사에 없어요"}
+                {s.result && unitFor(s.result.unit ?? s.a.unit) === "" ? ` ${s.result.unit ?? s.a.unit}` : ""}
+              </p>
+            </div>
+          ))}
+        </div>
       )}
 
       {compact ? null : (
-      <div className="note-block" style={{ marginTop: 14 }}>
-        <strong>NOTE</strong>
-        음영이 참고구간이에요. 안쪽으로 들어가면 낮음, 바깥으로 나가면 높음이고, 띠에서 멀수록 많이
-        벗어난 거예요. 축마다 단위가 달라 <strong>축 사이의 크기 비교는 의미가 없고</strong> 각 축에서 띠 기준으로만 봐 주세요.
-        {slots.some((s) => s.a.higherIsBetter) ? " eGFR 처럼 높을수록 좋은 항목은 바깥으로 나가도 걱정할 일이 아니에요." : ""}
-        {testedAt ? ` 기준 검사: ${testedAt}.` : ""}
-        {missing.length ? ` 이번 검사에는 ${missing.map((s) => s.short).join("·")}이 없어 그 축은 비워 두었어요.` : ""}
-        {noRef.length ? ` ${noRef.map((s) => s.short).join("·")}은 참고치가 없어 값만 적었어요.` : ""}
-        {unprinted.length ? " 결과지에 참고치가 없는 항목은 일반적인 기준으로 표시했어요." : ""}
-      </div>
+        <div className="note-block" style={{ marginTop: 14 }}>
+          <strong>NOTE</strong>
+          각 축의 연두색 막대가 참고구간이에요. 점이 막대 안이면 정상, 막대에서 멀수록 많이 벗어난 거예요.
+          {oneSided.length
+            ? " 상한만 있는 항목은 막대가 가운데서 시작하고, 하한만 있는 항목은 축 끝까지 이어져요."
+            : ""}
+          {" "}축마다 단위가 달라 축 사이의 크기 비교는 의미가 없어요.
+          {slots.some((s) => s.a.higherIsBetter) ? " eGFR 처럼 높을수록 좋은 항목은 바깥으로 나가도 걱정할 일이 아니에요." : ""}
+          {testedAt ? ` 기준 검사: ${testedAt}.` : ""}
+          {missing.length ? ` 이번 검사에는 ${missing.map((s) => s.short).join("·")}이 없어 그 축은 비워 두었어요.` : ""}
+          {noRef.length ? ` ${noRef.map((s) => s.short).join("·")}은 참고치가 없어 값만 적었어요.` : ""}
+          {unprinted.length ? " 결과지에 참고치가 없는 항목은 일반적인 기준으로 표시했어요." : ""}
+        </div>
       )}
     </div>
   );
