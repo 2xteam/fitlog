@@ -24,6 +24,8 @@ export default function MyPage() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  /** 전화번호는 세션 쿠키에 없다 — 서버에서 받는다 → app/api/me */
+  const [phone, setPhone] = useState<string>("");
 
   const thisYear = useMemo(() => new Date().getFullYear(), []);
 
@@ -35,6 +37,14 @@ export default function MyPage() {
     }
     setSession(s);
   }, [router]);
+
+  useEffect(() => {
+    if (!session) return;
+    void fetch("/api/me")
+      .then((r) => r.json() as Promise<{ ok: boolean; me?: { phone?: string | null } }>)
+      .then((j) => { if (j.ok) setPhone(j.me?.phone ?? ""); })
+      .catch(() => {});
+  }, [session]);
 
   // 저장된 값으로 폼을 채운다
   useEffect(() => {
@@ -69,7 +79,6 @@ export default function MyPage() {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          userId: session.id,
           heightCm: Number(heightCm),
           gender,
           birthYear: Number(birthYear),
@@ -215,7 +224,7 @@ export default function MyPage() {
       <Sheet tone="tint" eyebrow="ACCOUNT" headline="계정">
         <div style={{ marginTop: 16 }}>
           <p className="lead" style={{ marginTop: 0 }}>
-            {session?.name} · {session?.phone}
+            {session?.name} · {phone}
           </p>
           <button
             type="button"

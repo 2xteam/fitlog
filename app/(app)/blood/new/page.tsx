@@ -308,7 +308,6 @@ export default function NewBloodPage() {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          userId: session.id,
           testedAt: current.testedAt,
           lab: current.lab,
           results: current.results,

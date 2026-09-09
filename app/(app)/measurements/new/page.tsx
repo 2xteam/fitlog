@@ -271,7 +271,6 @@ export default function NewMeasurementPage() {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          userId: session.id,
           measuredAt: `${quickDate} 09:00`,
           data,
           note: quickNote.trim() || null,
@@ -300,7 +299,6 @@ export default function NewMeasurementPage() {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          userId: session.id,
           measuredAt: current.data.measuredAt ?? "",
           data: current.data,
           imageUrl: current.imageUrl,

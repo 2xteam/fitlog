@@ -86,8 +86,6 @@ export default function NoticePage() {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          userId: session.id,
-          phone: session.phone,
           eventId,
           code,
         }),

@@ -1,16 +1,12 @@
 export type SessionUser = {
   id: string;
   name: string;
-  phone: string;
   /**
-   * 포털이 쿠키에 함께 넣어 두는 값. 이 앱은 **읽기만** 한다 —
-   * 이메일이 없는 계정에 안내 띠를 띄울지 판단하는 데 쓴다
-   * → components/EmailBanner.tsx
-   *
-   * ⚠️ 세션을 다시 저장할 때 이 값을 빠뜨리지 말 것. 아래 `token` 과 같은 이유다.
-   * `saveSession(json.user)` 처럼 받은 객체를 그대로 넘기면 안전하다.
+   * 2hbk가 같은 쿠키에 덧붙이는 값. 이 앱은 읽지 않지만, 세션을 다시 저장할 때
+   * 떨어뜨리면 2hbk 로그인이 조용히 풀리므로 그대로 실어 둔다 → stripSensitive()
    */
-  email?: string;
+  nickname?: string;
+  userId?: string;
   /**
    * 이메일이 등록되어 있는가. 주소 자체는 더 이상 쿠키에 넣지 않는다 — 안내 띠 판단에는
    * 있는지 없는지만 필요하다. 주소가 필요한 화면은 `/api/me` 로 받는다.
@@ -104,7 +100,7 @@ function deleteCookie(name: string) {
 function isSessionUser(x: unknown): x is SessionUser {
   if (!x || typeof x !== "object") return false;
   const o = x as Record<string, unknown>;
-  return typeof o.id === "string" && typeof o.phone === "string";
+  return typeof o.id === "string";
 }
 
 function readPayload(raw: string): StoredPayload | null {
@@ -185,7 +181,7 @@ function readBestPayload(): StoredPayload | null {
  * 판단 기준을 AuthGate · useSession 과 한 곳으로 모은다 → 30-Patterns/인증과 세션 공유.md
  */
 export function hasUsableSession(): boolean {
-  return Boolean(readBestPayload()?.token) || getCookieValues(SESSION_MARK_COOKIE).includes("1");
+  return getCookieValues(SESSION_MARK_COOKIE).includes("1");
 }
 
 /** 세션에 담긴 앱 서버용 서명 토큰 */
@@ -213,10 +209,21 @@ export function loadSession(): SessionUser | null {
       return null;
     }
 
+    /* 옛 형식(전화번호·이메일·토큰이 든 쿠키)이면 즉시 떼어 다시 쓴다. 토큰은 서버가 더 읽지 않는다 */
+    if (payload.token || "email" in payload.user || "phone" in payload.user) {
+      saveSession(payload.user);
+      return stripSensitive(payload.user);
+    }
     return payload.user;
   } catch {
     return null;
   }
+}
+
+/** 표시용 쿠키에 남으면 안 되는 값을 뗀다 */
+function stripSensitive(u: SessionUser): SessionUser {
+  const { id, name, nickname, userId, hasEmail } = u;
+  return { id, name, ...(nickname !== undefined ? { nickname } : {}), ...(userId !== undefined ? { userId } : {}), ...(hasEmail !== undefined ? { hasEmail } : {}) };
 }
 
 export function saveSession(user: SessionUser, token?: string) {
@@ -228,9 +235,14 @@ export function saveSession(user: SessionUser, token?: string) {
     다시 저장하며 토큰을 떨어뜨리면 2hbk 로그인이 조용히 풀린다.
     단 사람이 바뀌었으면 남의 토큰을 물려줄 수 없으니 버린다.
   */
-  const kept = readBestPayload();
-  const carried =
-    token ?? (kept && kept.user.id === user.id ? kept.token : undefined);
+  /*
+    2026-09-09 부터 토큰은 HttpOnly `snap_session` 에만 있다. 이 쿠키에는 **넣지 않는다.**
+    `token` 인자는 옛 호출부 호환용이고 무시한다 — 표시용 쿠키에 전화번호·이메일·토큰이 남지 않게
+    받은 객체에서 그 셋을 떼고 저장한다.
+  */
+  void token;
+  const carried: string | undefined = undefined;
+  user = stripSensitive(user);
 
   const expiresAt = Date.now() + SESSION_TTL_SEC * 1000;
   const body: StoredPayload = {

@@ -92,8 +92,6 @@ export async function POST(req: Request) {
     */
     const doc = await Inquiry.create({
       userId: owner,
-      phone: viewer.doc.phone ?? "",
-      name: viewer.doc.name ?? viewer.doc.nickname ?? "회원",
       category,
       title,
       content,

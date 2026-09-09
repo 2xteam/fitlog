@@ -9,7 +9,8 @@ const InquirySchema = new Schema(
      * → my-obsidian-vault / 50-Plans/E 개인정보 보호 보강.md 9번(B7)
      */
     phone: { type: String, default: "", index: true },
-    name: { type: String, required: true },
+    /** 2026-09-09 부터 쓰지 않는다 — 이름은 회원을 조회해 붙인다. 옛 문서에만 남아 있다 */
+    name: { type: String, default: "" },
     category: {
       type: String,
       required: true,

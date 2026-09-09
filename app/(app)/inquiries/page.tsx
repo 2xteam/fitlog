@@ -55,7 +55,7 @@ export default function InquiriesPage() {
     setLoading(true);
     try {
       const res = await fetch(
-        `/api/inquiries?phone=${encodeURIComponent(s.phone)}&userId=${encodeURIComponent(s.id)}`,
+        `/api/inquiries`,
       );
       const json = (await res.json()) as { ok: boolean; inquiries?: Inquiry[] };
       if (json.ok && json.inquiries) setInquiries(json.inquiries);
@@ -80,8 +80,6 @@ export default function InquiriesPage() {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          phone: session.phone,
-          userId: session.id,
           category,
           title: title.trim(),
           content: content.trim(),

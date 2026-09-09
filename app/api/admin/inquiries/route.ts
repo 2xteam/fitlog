@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { adminApiError, requireAdminSecret } from "@/lib/adminApi";
 import { getInquiryModel } from "@/models/Inquiry";
+import { getUserModel } from "@/models/User";
 
 export const runtime = "nodejs";
 
@@ -13,6 +14,7 @@ export const runtime = "nodejs";
 type InquiryRow = {
   id: string;
   name: string;
+  /** 연락처 — 이메일이다. 키 이름은 포털 화면 호환을 위해 그대로 둔다 */
   phone: string;
   category: string;
   title: string;
@@ -36,10 +38,21 @@ async function list(status: string): Promise<InquiryRow[]> {
     .lean()
     .exec();
 
+  /*
+    이름·연락처는 문의 문서에 **베껴 두지 않고** 회원을 조회해 붙인다 (2026-09-09).
+    문서마다 전화번호를 복사해 두면 지울 자리가 하나 더 생긴다. 연락처는 이메일이다.
+    → my-obsidian-vault / 50-Plans/E 개인정보 보호 보강.md 9번(B7)
+  */
+  const ids = [...new Set(rows.map((q) => String(q.userId)).filter(Boolean))];
+  const users = ids.length
+    ? await getUserModel().find({ _id: { $in: ids } }, { name: 1, nickname: 1, email: 1 }).lean().exec()
+    : [];
+  const byId = new Map(users.map((u) => [String(u._id), u]));
+
   return rows.map((q) => ({
     id: String(q._id),
-    name: q.name ?? "",
-    phone: q.phone ?? "",
+    name: byId.get(String(q.userId))?.nickname ?? byId.get(String(q.userId))?.name ?? q.name ?? "(탈퇴한 회원)",
+    phone: byId.get(String(q.userId))?.email ?? "",
     category: q.category ?? "",
     title: q.title ?? "",
     content: q.content ?? "",

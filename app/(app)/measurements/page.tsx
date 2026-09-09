@@ -53,7 +53,7 @@ export default function InbodyPage() {
   const load = useCallback(async () => {
     if (!session) return;
     const res = await fetch(
-      `/api/measurements?userId=${encodeURIComponent(session.id)}`,
+      `/api/measurements`,
     );
     const json = (await res.json()) as { ok: boolean; measurements?: Row[] };
     setRows(json.measurements ?? []);

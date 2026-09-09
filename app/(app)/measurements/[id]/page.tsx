@@ -40,7 +40,7 @@ export default function MeasurementDetailPage() {
   const load = useCallback(async () => {
     if (!session || !params?.id) return;
     const res = await fetch(
-      `/api/measurements/${params.id}?userId=${encodeURIComponent(session.id)}`,
+      `/api/measurements/${params.id}`,
     );
     const json = (await res.json()) as { ok: boolean; measurement?: Row; error?: string };
     if (!json.ok || !json.measurement) {
@@ -58,7 +58,7 @@ export default function MeasurementDetailPage() {
     if (!session || !params?.id) return;
     if (!confirm("이 기록을 삭제할까요?")) return;
     await fetch(
-      `/api/measurements/${params.id}?userId=${encodeURIComponent(session.id)}`,
+      `/api/measurements/${params.id}`,
       { method: "DELETE" },
     );
     router.push("/measurements");

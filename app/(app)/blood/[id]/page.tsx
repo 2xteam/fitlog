@@ -34,7 +34,7 @@ export default function BloodDetailPage() {
       }
       setUserId(s.id);
       const res = await fetch(
-        `/api/blood/${params.id}?userId=${encodeURIComponent(s.id)}`,
+        `/api/blood/${params.id}`,
       );
       const json = (await res.json()) as { ok?: boolean; test?: BloodRow };
       if (!res.ok || !json.ok || !json.test) {

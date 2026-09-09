@@ -47,7 +47,7 @@ export default function EditMeasurementPage() {
   const load = useCallback(async () => {
     if (!session || !params?.id) return;
     const res = await fetch(
-      `/api/measurements/${params.id}?userId=${encodeURIComponent(session.id)}`,
+      `/api/measurements/${params.id}`,
     );
     const json = (await res.json()) as { ok: boolean; measurement?: Row; error?: string };
     if (!json.ok || !json.measurement) {
@@ -130,7 +130,7 @@ export default function EditMeasurementPage() {
       const res = await fetch(`/api/measurements/${params.id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ userId: session.id, measuredAt, data }),
+        body: JSON.stringify({ measuredAt, data }),
       });
       const json = (await res.json()) as { ok: boolean; error?: string };
       if (!res.ok || !json.ok) {
@@ -149,7 +149,7 @@ export default function EditMeasurementPage() {
     if (!session || !params?.id) return;
     if (!confirm("이 기록을 삭제할까요? 되돌릴 수 없어요.")) return;
     await fetch(
-      `/api/measurements/${params.id}?userId=${encodeURIComponent(session.id)}`,
+      `/api/measurements/${params.id}`,
       { method: "DELETE" },
     );
     router.push("/measurements");

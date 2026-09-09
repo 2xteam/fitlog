@@ -49,7 +49,7 @@ export function FloatingChat() {
     if (!IS_TOKEN_SYSTEM_ENABLED) return;
 
     try {
-      const res = await fetch(`/api/token-balance?userId=${encodeURIComponent(s.id)}`);
+      const res = await fetch(`/api/token-balance`);
       const json = (await res.json()) as { ok: boolean; tokens?: number };
       if (json.ok) setTokenBalance(json.tokens ?? 0);
     } catch { /* ignore */ }
@@ -61,7 +61,7 @@ export function FloatingChat() {
    */
   const loadChips = useCallback(async (s: SessionUser) => {
     try {
-      const res = await fetch(`/api/chat/suggestions?userId=${encodeURIComponent(s.id)}`);
+      const res = await fetch(`/api/chat/suggestions`);
       const json = (await res.json()) as { ok: boolean; chips?: Array<{ text: string }> };
       if (json.ok && json.chips) setChips(json.chips.map((c) => c.text));
     } catch {
@@ -71,7 +71,7 @@ export function FloatingChat() {
 
   const loadThreads = useCallback(async (s: SessionUser) => {
     const res = await fetch(
-      `/api/chat/threads?phone=${encodeURIComponent(s.phone)}&userId=${encodeURIComponent(s.id)}`,
+      `/api/chat/threads`,
     );
     const json = (await res.json()) as { ok: boolean; items?: Thread[] };
     if (json.ok && json.items) setThreads(json.items);
@@ -83,7 +83,7 @@ export function FloatingChat() {
       setHydrating(true);
       try {
         const res = await fetch(
-          `/api/chat/threads/${threadId}/messages?phone=${encodeURIComponent(s.phone)}&userId=${encodeURIComponent(s.id)}`,
+          `/api/chat/threads/${threadId}/messages`,
         );
         const json = (await res.json()) as { ok: boolean; items?: Msg[] };
         if (json.ok && json.items) setMessages(json.items);
@@ -123,7 +123,7 @@ export function FloatingChat() {
       let list: Thread[] = [];
       try {
         const res = await fetch(
-          `/api/chat/threads?phone=${encodeURIComponent(session.phone)}&userId=${encodeURIComponent(session.id)}`,
+          `/api/chat/threads`,
         );
         const json = (await res.json()) as { ok: boolean; items?: Thread[] };
         if (json.ok && json.items) list = json.items;
@@ -184,7 +184,7 @@ export function FloatingChat() {
         const res = await fetch("/api/chat/threads", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ phone: session.phone, userId: session.id }),
+          body: JSON.stringify({}),
         });
         const json = (await res.json()) as { ok: boolean; id?: string };
         if (json.ok && json.id) created = json.id;
@@ -229,8 +229,6 @@ export function FloatingChat() {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          phone: session.phone,
-          userId: session.id,
           text,
           ...(answerTo ? { answerTo } : {}),
         }),
