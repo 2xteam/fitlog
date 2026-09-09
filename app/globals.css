@@ -1171,3 +1171,91 @@ a[style*="var(--bg-card)"]:hover {
   font-size: 12.5px;
   border-radius: 9px;
 }
+
+/* ── 결과지 분석 진행 띠 ──
+ * `components/ExtractProgress.tsx` 가 쓴다. FitLog 전용이라 생성 파일인
+ * `elements.css` 가 아니라 여기 둔다.
+ *
+ * 채워지는 부분은 `.scroll-progress` 와 같은 방식이다 — 폭 100% 로 칠한 뒤
+ * `scaleX` 로 줄인다. 그래야 30% 든 90% 든 양쪽 테마색이 늘 보인다.
+ * → app/elements.css 의 .scroll-progress::after
+ *
+ * ⚠️ 띠와 글씨는 **애니메이션 없이도 보인다.** 움직임은 활성 구간의
+ * 반짝임뿐이고 `prefers-reduced-motion` 에서 끈다. 진행 표시가 등장
+ * 애니메이션에 의존하면 애니메이션이 멈춘 브라우저에서 빈 화면이 된다.
+ * 근거: my-obsidian-vault → 30-Patterns/화면 확인의 함정.md
+ * ── */
+
+.extract-progress {
+  margin-top: 14px;
+}
+
+.extract-progress__track {
+  position: relative;
+  overflow: hidden;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+/* 끝난 장 — 채워진 만큼. scaleX 로 줄여 그라디언트가 함께 눌리게 한다 */
+.extract-progress__done {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(90deg, var(--progress-from) 0%, var(--progress-to) 100%);
+  transform-origin: 0 50%;
+  transform: scaleX(var(--done, 0));
+}
+
+/*
+  지금 하고 있는 장. 남은 시간을 모르니 **가짜 퍼센트를 만들지 않고**
+  이 구간만 반짝인다. 배경색을 깔아 두어 애니메이션이 없어도 보인다.
+*/
+.extract-progress__active {
+  position: absolute;
+  inset-block: 0;
+  border-radius: var(--radius-full);
+  background: linear-gradient(
+    100deg,
+    var(--accent-subtle) 30%,
+    var(--accent) 50%,
+    var(--accent-subtle) 70%
+  );
+  background-size: 300% 100%;
+  animation: extract-sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes extract-sweep {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+
+.extract-progress__text {
+  margin: 10px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.extract-progress__secs {
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.extract-progress__tip {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: var(--text-secondary);
+  word-break: keep-all;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .extract-progress__active {
+    animation: none;
+    background: var(--accent-subtle);
+  }
+}

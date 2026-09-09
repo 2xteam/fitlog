@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Sheet } from "@/components/Sheet";
 import { NoteField } from "@/components/RecordNote";
 import { goConsentIfNeeded } from "@/lib/consentGate";
+import { ExtractProgress, type ExtractProgressState } from "@/components/ExtractProgress";
 import { loadSession, type SessionUser } from "@/lib/session";
 import { useProfile } from "@/lib/useProfile";
 import { checkUploadSize, shrinkImageForUpload } from "@/lib/clientImageResize";
@@ -50,6 +51,12 @@ export default function NewMeasurementPage() {
 
   const [step, setStep] = useState<Step>("upload");
   const [busy, setBusy] = useState<string | null>(null);
+  /*
+    추출 진행은 `busy` 문자열과 따로 둔다. 버튼 글씨 한 줄로는 "몇 장 중
+    몇 번째"와 경과 시간, 기다리는 동안 읽을 안내를 함께 담을 수 없다.
+    → components/ExtractProgress.tsx
+  */
+  const [progress, setProgress] = useState<ExtractProgressState | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
   /** 추출을 마친 목록과 현재 검토 중인 위치 */
@@ -96,10 +103,10 @@ export default function NewMeasurementPage() {
 
     for (let i = 0; i < files.length; i += 1) {
       const file = files[i];
-      const label = files.length > 1 ? `${i + 1}/${files.length} ` : "";
 
       try {
-        setBusy(`${label}이미지를 줄이는 중…`);
+        setProgress({ phase: "shrink", current: i + 1, total: files.length });
+        setBusy("분석 중…");
         const shrunk = await shrinkImageForUpload(file);
         const sizeCheck = checkUploadSize(shrunk);
         if (!sizeCheck.ok) {
@@ -107,7 +114,7 @@ export default function NewMeasurementPage() {
           continue;
         }
 
-        setBusy(`${label}결과지를 읽는 중… (10~20초)`);
+        setProgress({ phase: "read", current: i + 1, total: files.length });
         const fd = new FormData();
         fd.set("file", shrunk);
         fd.set("userId", session.id);
@@ -131,7 +138,12 @@ export default function NewMeasurementPage() {
           분리 동의가 없다. 문장만 띄우면 어디서 동의하는지 알 수 없어서
           동의 화면으로 보낸다. 마치면 이 자리로 돌아온다.
         */
-        if (res.status === 412 && goConsentIfNeeded(json, "/measurements/new")) return;
+        if (res.status === 412 && goConsentIfNeeded(json, "/measurements/new")) {
+          /* 리다이렉트가 막히면 진행 표시가 남는다 — 지우고 나간다 */
+          setBusy(null);
+          setProgress(null);
+          return;
+        }
 
         // 프로필이 없으면 더 진행할 의미가 없다
         if (res.status === 428) {
@@ -161,6 +173,7 @@ export default function NewMeasurementPage() {
     }
 
     setBusy(null);
+    setProgress(null);
     setFailed(fails);
 
     if (done.length === 0) {
@@ -411,6 +424,8 @@ export default function NewMeasurementPage() {
             >
               {busy ?? "사진 선택하기 (여러 장 가능)"}
             </button>
+
+            {progress ? <ExtractProgress {...progress} /> : null}
 
             {msg ? (
               <p className="lead" style={{ color: "var(--danger)" }}>

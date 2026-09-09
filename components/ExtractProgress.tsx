@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { CSSProperties } from "react";
 
 /**
  * 결과지 분석이 진행되는 동안 보여 주는 띠와 안내.
@@ -96,9 +97,10 @@ export function ExtractProgress({ phase, current, total }: ExtractProgressState)
         aria-valuenow={current - 1}
         aria-label="결과지 분석 진행"
       >
+        {/* 채워지는 부분은 scaleX 로 줄인다 → app/globals.css 의 주석 */}
         <div
           className="extract-progress__done"
-          style={{ width: `${done * 100}%` }}
+          style={{ "--done": String(done) } as CSSProperties}
         />
         <div
           className="extract-progress__active"
