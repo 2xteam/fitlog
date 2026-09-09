@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Sheet } from "@/components/Sheet";
-import { BodyRadar } from "@/components/BodyRadar";
+import { BodyRadar, RADAR_SLOTS } from "@/components/BodyRadar";
 import { FieldRow, toPoints, type Row } from "@/components/TrendChart";
 import { loadSession, type SessionUser } from "@/lib/session";
 import { useProfile } from "@/lib/useProfile";
@@ -78,25 +78,27 @@ export default function InbodyPage() {
   }, [rows]);
 
   /**
-   * 레이더에 올릴 기록 — **세 축이 모두 있는 가장 최근 기록**.
-   *
-   * 가장 최근 기록이 "체중만 기록"(source manual)이거나 기종이 골격근량·체지방률을 인쇄하지
-   * 않은 경우, `latest` 만 쓰면 축이 셋이 안 돼 레이더가 사라졌다 (2026-09-09 사용자 보고).
-   * 그래서 최근 것부터 훑어 셋이 갖춰진 첫 기록을 쓰고, 그것이 최신이 아니면 화면에 밝힌다.
-   * 셋 다 갖춘 기록이 하나도 없으면 최신 기록의 축으로 넘겨 무엇이 빠졌는지 보여 준다.
+   * 레이더는 **가장 최근 기록**으로 그린다 (2026-09-09 사용자 결정 — 직전 기록으로 대체하지 않는다).
+   * 값이 없는 축은 BodyRadar 가 비워 두고 삼각 틀은 유지한다. 범위가 없어 축이 못 된 값도
+   * 숫자는 보여 주려고 세 값을 따로 넘긴다.
    */
-  const radar = useMemo(() => {
-    if (!rows || rows.length === 0) return null;
-    const prof = { heightCm: profile?.heightCm ?? null, gender: profile?.gender ?? null };
-    const sorted = [...rows].sort(
-      (a, b) => new Date(b.measuredAt).getTime() - new Date(a.measuredAt).getTime(),
-    );
-    for (const r of sorted) {
-      const axes = buildRadarAxes(r, prof);
-      if (axes.length >= 3) return { row: r, axes, isLatest: r === sorted[0] };
-    }
-    return { row: sorted[0], axes: buildRadarAxes(sorted[0], prof), isLatest: true };
-  }, [rows, profile]);
+  const radarAxes = useMemo(
+    () =>
+      latest
+        ? buildRadarAxes(latest, {
+            heightCm: profile?.heightCm ?? null,
+            gender: profile?.gender ?? null,
+          })
+        : [],
+    [latest, profile],
+  );
+  const radarValues = useMemo(
+    () =>
+      latest
+        ? Object.fromEntries(RADAR_SLOTS.map((s) => [s.path, (pick(latest, s.path) as number | null) ?? null]))
+        : {},
+    [latest],
+  );
 
   /** 직전 기록 — 두 번 연속 벗어났는지 보려고 쓴다 */
   const previous = useMemo(() => {
@@ -152,16 +154,8 @@ export default function InbodyPage() {
         lead={latest ? "가장 최근 기록을 적정 범위와 겹쳐 봤어요." : undefined}
       >
         <div style={{ marginTop: 18 }}>
-          {radar ? (
-            <>
-              {!radar.isLatest && latest ? (
-                <p className="field-hint" style={{ margin: "0 0 10px" }}>
-                  가장 최근 기록({fmtDate(latest.measuredAt)})에는 체중·골격근량·체지방률이 모두 없어
-                  세 값이 있는 직전 기록으로 그렸어요.
-                </p>
-              ) : null}
-              <BodyRadar axes={radar.axes} measuredAt={fmtDate(radar.row.measuredAt)} />
-            </>
+          {latest ? (
+            <BodyRadar axes={radarAxes} values={radarValues} measuredAt={fmtDate(latest.measuredAt)} />
           ) : rows !== null ? (
             <p className="lead">아직 기록이 없어요.</p>
           ) : null}

@@ -11,14 +11,15 @@ import { pick, type FieldDef } from "@/lib/inbody";
  */
 
 export type Row = Record<string, unknown> & { _id: string; measuredAt: string };
-export type Point = { t: number; v: number };
+/** `id` 는 그 값이 나온 기록 — 점을 누르면 상세(/measurements/[id])로 간다 */
+export type Point = { t: number; v: number; id?: string };
 
 /** 측정 목록에서 한 항목만 뽑아 시간순 점으로 만든다 */
 export function toPoints(rows: Row[] | null, path: string): Point[] {
   const out: Point[] = [];
   for (const r of rows ?? []) {
     const v = pick(r, path);
-    if (v != null) out.push({ t: new Date(r.measuredAt).getTime(), v });
+    if (v != null) out.push({ t: new Date(r.measuredAt).getTime(), v, id: r._id });
   }
   return out.sort((a, b) => a.t - b.t);
 }
@@ -165,33 +166,60 @@ export function Chart({
 
           <path d={line} fill="none" stroke="var(--accent)" strokeWidth="2.4" />
 
-          {points.map((p, i) => (
-            <g key={`${p.t}-${i}`}>
-              <circle cx={px(i)} cy={py(p.v)} r={4} fill="var(--accent)" />
-              {/* 폭을 넓혔으니 값과 날짜를 점마다 적어도 겹치지 않는다 */}
-              <text
-                x={px(i)}
-                y={py(p.v) - 12}
-                fontSize="10.5"
-                fontWeight="700"
-                textAnchor="middle"
-                fill="var(--text-primary)"
+          {points.map((p, i) => {
+            /*
+              점 하나가 곧 결과지 하나다. 누르면 그날 상세로 간다 — 추이에서 상세로 갈 길이
+              없었다 (2026-09-09 사용자 지적). 손가락으로 누를 수 있게 보이지 않는 넓은 원을 덧댄다.
+            */
+            const body = (
+              <>
+                <title>{`${fmt(p.t)} · ${p.v}${field.unit ?? ""} — 상세 보기`}</title>
+                <circle cx={px(i)} cy={py(p.v)} r={14} fill="transparent" />
+                <circle cx={px(i)} cy={py(p.v)} r={4} fill="var(--accent)" />
+                {/* 폭을 넓혔으니 값과 날짜를 점마다 적어도 겹치지 않는다 */}
+                <text
+                  x={px(i)}
+                  y={py(p.v) - 12}
+                  fontSize="10.5"
+                  fontWeight="700"
+                  textAnchor="middle"
+                  fill="var(--text-primary)"
+                >
+                  {p.v}
+                </text>
+                <text
+                  x={px(i)}
+                  y={H - pad.b + 26}
+                  fontSize="10"
+                  textAnchor="middle"
+                  fill="var(--text-muted)"
+                  textDecoration={p.id ? "underline" : undefined}
+                >
+                  {fmt(p.t)}
+                </text>
+              </>
+            );
+            return p.id ? (
+              <a
+                key={`${p.t}-${i}`}
+                href={`/measurements/${p.id}`}
+                style={{ cursor: "pointer" }}
+                aria-label={`${fmt(p.t)} 기록 상세 보기`}
               >
-                {p.v}
-              </text>
-              <text
-                x={px(i)}
-                y={H - pad.b + 26}
-                fontSize="10"
-                textAnchor="middle"
-                fill="var(--text-muted)"
-              >
-                {fmt(p.t)}
-              </text>
-            </g>
-          ))}
+                {body}
+              </a>
+            ) : (
+              <g key={`${p.t}-${i}`}>{body}</g>
+            );
+          })}
         </svg>
       </div>
+
+      {points.some((p) => p.id) ? (
+        <p className="field-hint" style={{ margin: "6px 0 0" }}>
+          점이나 날짜를 누르면 그날 결과지 상세로 이동해요.
+        </p>
+      ) : null}
 
       {scrollable && !atEnd ? (
         <p className="field-hint" style={{ margin: "6px 0 0", textAlign: "right" }}>
