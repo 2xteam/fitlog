@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Sheet } from "@/components/Sheet";
 import { FieldRow } from "@/components/TrendChart";
 import { BloodGauge } from "@/components/BloodGauge";
+import { BloodRadar } from "@/components/BloodRadar";
 import { EvidenceLegend, GuidanceList } from "@/components/GuidanceList";
 import { loadSession, type SessionUser } from "@/lib/session";
 import {
@@ -108,39 +109,19 @@ export default function BloodPage() {
         </div>
       </Sheet>
 
-      {/* ── 핵심 4축 ────────────────────────────────────── */}
+      {/* ── 핵심 축 — 인바디 삼각처럼 항목 수만큼 축을 가진 레이더 (2026-09-09) ── */}
       <Sheet
         eyebrow="MAIN"
-        headline="핵심 4축"
+        headline={`핵심 ${PRIMARY_ANALYTES.length}축`}
         lead={
           latest
-            ? "간 · 지질 · 혈당 · 신장 네 갈래를 대표하는 항목이에요. 매번 같은 자리에서 봐요."
+            ? "간 · 지질 · 혈당 · 신장 네 갈래를 대표하는 항목이에요. 가장 최근 검사를 참고구간과 겹쳐 봐요."
             : undefined
         }
       >
         {latest ? (
-          <div
-            style={{
-              marginTop: 18,
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-              gap: 18,
-            }}
-          >
-            {PRIMARY_ANALYTES.map((a) => {
-              const r = resultOf(latest, a.code);
-              if (!r) {
-                return (
-                  <div key={a.code}>
-                    <p style={{ margin: 0, fontSize: "0.85rem", fontWeight: 600 }}>{a.label}</p>
-                    <p className="field-hint" style={{ margin: "8px 0 0" }}>
-                      이번 검사에 없는 항목이에요.
-                    </p>
-                  </div>
-                );
-              }
-              return <BloodGauge key={a.code} analyte={a} result={r} />;
-            })}
+          <div style={{ marginTop: 18 }}>
+            <BloodRadar analytes={PRIMARY_ANALYTES} row={latest} testedAt={fmtDate(latest.testedAt)} />
           </div>
         ) : rows !== null ? (
           <p className="lead">아직 기록이 없어요. 결과지를 등록하면 여기에 나와요.</p>
@@ -481,6 +462,11 @@ function FlaggedCard({
       ) : null}
     </div>
   );
+}
+
+function fmtDate(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}`;
 }
 
 /** 결과지 한 장 */
