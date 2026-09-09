@@ -1,12 +1,12 @@
 import mongoose, { type HydratedDocument } from "mongoose";
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
-import { normalizePhone } from "@/lib/phone";
+import { requireViewer } from "@/lib/auth";
+import { requireConsents } from "@/lib/requireConsent";
 import { buildChatInstructions, generateChatSubjectLine } from "@/lib/chatOpenAi";
 import { isOpenAiKeyConfigured } from "@/lib/openaiKey";
 import { createOpenAiConversation, streamOpenAiResponse } from "@/lib/openAiConversations";
 import { ChatThread, type ChatThreadDocument } from "@/models/ChatThread";
-import { getUserModel } from "@/models/User";
 import { deductTokens } from "@/lib/useToken";
 import { buildBloodContext, buildMeasurementContext } from "@/lib/measurementContext";
 import { ASK_USER_TOOL, parseAskUser } from "@/lib/askUserTool";
@@ -35,24 +35,26 @@ export const maxDuration = 60;
 
 type ChatThreadHydrated = HydratedDocument<ChatThreadDocument>;
 
+/**
+ * 스레드가 **이 회원의 것**인지 본다.
+ *
+ * 소유자는 세션 토큰의 `viewer.uid` 다. 예전 화면이 보내는 `phone`·`userId` 는
+ * 무시한다. `chat_threads.userId` 는 ObjectId 라 조회 조건에 바꿔 넣는다. → lib/auth.ts
+ */
 async function assertThread(
   threadId: string,
-  phone: string,
-  userId: string,
+  ownerUid: string,
 ): Promise<{ ok: true; thread: ChatThreadHydrated } | { ok: false; error: string; status: number }> {
-  const p = normalizePhone(phone);
-  if (!mongoose.isValidObjectId(threadId) || !p || !mongoose.isValidObjectId(userId)) {
-    return { ok: false, error: "threadId, phone, userId가 필요합니다.", status: 400 };
+  if (!mongoose.isValidObjectId(threadId)) {
+    return { ok: false, error: "threadId가 올바르지 않습니다.", status: 400 };
   }
 
   await connectDB();
-  const user = await getUserModel().findById(userId).exec();
-  if (!user || user.phone !== p) {
-    return { ok: false, error: "권한이 없습니다.", status: 403 };
-  }
-
-  const thread = (await ChatThread.findById(threadId).exec()) as ChatThreadHydrated | null;
-  if (!thread || String(thread.userId) !== String(userId)) {
+  const thread = (await ChatThread.findOne({
+    _id: new mongoose.Types.ObjectId(threadId),
+    userId: new mongoose.Types.ObjectId(ownerUid),
+  }).exec()) as ChatThreadHydrated | null;
+  if (!thread) {
     return { ok: false, error: "대화를 찾을 수 없습니다.", status: 404 };
   }
 
@@ -64,16 +66,27 @@ export async function POST(req: Request, ctx: { params: Promise<{ threadId: stri
     return NextResponse.json({ ok: false, error: "OPENAI_API_KEY가 필요합니다." }, { status: 503 });
   }
 
+  const auth = await requireViewer(req);
+  if ("error" in auth) return auth.error;
+  const userId = auth.viewer.uid;
+
+  /*
+    분리 동의를 **서버에서** 본다. 이 턴은 사용자의 인바디·피검사 수치를
+    OpenAI `instructions` 에 실어 보낸다(lib/measurementContext.ts) — 건강정보 처리와
+    국외 이전 동의가 둘 다 있어야 한다. 없으면 412 → lib/requireConsent.ts
+    스트림을 열기 전에 막아야 화면이 412 를 알아볼 수 있다.
+  */
+  const consentDenied = await requireConsents(userId, ["health", "overseas"]);
+  if (consentDenied) return consentDenied;
+
   const { threadId } = await ctx.params;
-  let body: { phone?: string; userId?: string; text?: string; answerTo?: string };
+  let body: { text?: string; answerTo?: string };
   try {
     body = (await req.json()) as typeof body;
   } catch {
     return NextResponse.json({ ok: false, error: "JSON 본문이 필요합니다." }, { status: 400 });
   }
 
-  const phone = typeof body.phone === "string" ? body.phone : "";
-  const userId = typeof body.userId === "string" ? body.userId.trim() : "";
   const text = typeof body.text === "string" ? body.text.trim() : "";
   /* 되묻기에 답하는 턴 — 사용자 메시지 대신 도구 결과를 넣는다 */
   const answerTo = typeof body.answerTo === "string" ? body.answerTo.trim() : "";
@@ -81,7 +94,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ threadId: stri
     return NextResponse.json({ ok: false, error: "text가 필요합니다." }, { status: 400 });
   }
 
-  const gate = await assertThread(threadId, phone, userId);
+  const gate = await assertThread(threadId, userId);
   if (!gate.ok) {
     return NextResponse.json({ ok: false, error: gate.error }, { status: gate.status });
   }

@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/db";
+import { deleteOpenAiConversations } from "@/lib/purgeOpenAiConversations";
 import { deleteR2Objects } from "@/lib/purgeR2";
 import { getBloodTestModel } from "@/models/BloodTest";
 import { ChatThread } from "@/models/ChatThread";
@@ -46,6 +47,14 @@ export async function purgeUserData(id: string): Promise<PurgeResult> {
 
   const removedFiles = await deleteR2Objects(imageUrls);
 
+  /*
+    대화 본문은 OpenAI Conversations 에만 있다. 스레드를 지우기 **전에** 그쪽 삭제를
+    요청한다 — 행을 지운 뒤에는 대화 id 를 찾을 수 없다. 실패해도 DB 삭제는 계속한다.
+    → lib/purgeOpenAiConversations.ts
+  */
+  const threadRows = await ChatThread.find({ userId: oid }, { openAiConversationId: 1 }).lean().exec();
+  const conversations = await deleteOpenAiConversations(threadRows.map((t) => t.openAiConversationId));
+
   const m = await Measurement.deleteMany({ userId: id }).exec();
   const b = await BloodTest.deleteMany({ userId: id }).exec();
   const threads = await ChatThread.deleteMany({ userId: oid }).exec();
@@ -57,5 +66,7 @@ export async function purgeUserData(id: string): Promise<PurgeResult> {
     chatThreads: threads.deletedCount ?? 0,
     inquiries: inquiries.deletedCount ?? 0,
     r2Files: removedFiles,
+    openAiConversations: conversations.deleted,
+    openAiConversationsFailed: conversations.failed,
   };
 }

@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import { IS_TOKEN_SYSTEM_ENABLED } from "@/lib/constants";
+import { goConsentIfNeeded } from "@/lib/consentGate";
 import { loadSession, type SessionUser } from "@/lib/session";
 
 type Thread = { _id: string; title: string; updatedAt: string };
@@ -237,6 +238,17 @@ export function FloatingChat() {
 
       if (!res.ok || !res.body) {
         const err = (await res.json().catch(() => null)) as { error?: string } | null;
+        /*
+          분리 동의가 없다(412). 상담은 내 수치를 OpenAI 로 보내므로 서버가 막는다.
+          문장만 띄우면 어디서 동의하는지 알 수 없어서 동의 화면으로 보낸다.
+          마치면 지금 이 페이지로 돌아온다. → lib/consentGate.ts
+        */
+        if (
+          res.status === 412 &&
+          goConsentIfNeeded(err, window.location.pathname + window.location.search)
+        ) {
+          return;
+        }
         setMessages((m) =>
           m.filter((x) => x._id !== pendingUserId && x._id !== pendingAiId).concat([
             { _id: `err-${Date.now()}`, role: "assistant", content: err?.error ?? "오류", createdAt: new Date().toISOString() },

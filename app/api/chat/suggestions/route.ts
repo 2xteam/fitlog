@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import mongoose from "mongoose";
 import { connectDB } from "@/lib/db";
+import { requireViewer } from "@/lib/auth";
+import { requireConsents } from "@/lib/requireConsent";
 import { getBloodTestModel } from "@/models/BloodTest";
 import { getMeasurementModel } from "@/models/Measurement";
-import { getUserModel } from "@/models/User";
 import { crossNotesFor, flaggedIn, type BloodRow } from "@/lib/blood";
 import { flaggedFields } from "@/lib/inbodyKnowledge";
 import { guidanceFor } from "@/lib/bloodGuidance";
@@ -41,15 +41,27 @@ const EMPTY: Chip[] = [
 ];
 
 export async function GET(req: Request) {
-  const userId = new URL(req.url).searchParams.get("userId")?.trim();
-  if (!userId || !mongoose.isValidObjectId(userId)) {
-    return NextResponse.json({ ok: true, chips: EMPTY });
-  }
+  /*
+    누구의 기록에서 뽑을지는 세션 토큰으로만 정한다. 예전 화면이 보내는 `?userId=` 는
+    무시한다 — 믿으면 남의 벗어난 수치가 질문 문장으로 새어 나온다. → lib/auth.ts
+  */
+  const auth = await requireViewer(req);
+  if ("error" in auth) return auth.error;
+  const { viewer } = auth;
+  const userId = viewer.uid;
+
+  /*
+    상담 기능의 일부라 상담과 같은 동의를 본다. 없으면 412 — 화면은 칩 없이 열리고,
+    첫 질문을 보낼 때 동의 화면으로 안내된다. → lib/requireConsent.ts
+  */
+  // 이 라우트는 OpenAI 를 부르지 않는다 — 건강정보 동의만 본다 (국외 이전은 채팅 전송에서)
+  const consentDenied = await requireConsents(userId, ["health"]);
+  if (consentDenied) return consentDenied;
 
   try {
     await connectDB();
-    const [user, bloodRows, measRows] = await Promise.all([
-      getUserModel().findById(userId).lean(),
+    const user = viewer.doc;
+    const [bloodRows, measRows] = await Promise.all([
       getBloodTestModel().find({ userId }).sort({ testedAt: -1 }).limit(2).lean(),
       getMeasurementModel().find({ userId }).sort({ measuredAt: -1 }).limit(2).lean(),
     ]);
@@ -84,7 +96,7 @@ export async function GET(req: Request) {
     const inbodyFlags = flaggedFields(
       measRows[0] ?? null,
       measRows[1] ?? null,
-      { gender: user?.gender ?? null },
+      { gender: user.gender ?? null },
     );
     for (const f of inbodyFlags) {
       if (chips.length >= 4) break;

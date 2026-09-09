@@ -2,7 +2,16 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { getBloodTestModel } from "@/models/BloodTest";
 import { validateBloodTest, type ResultLike } from "@/lib/blood";
+import { requireViewer } from "@/lib/auth";
 
+/**
+ * 피검사 1건 조회·수정·삭제.
+ *
+ * 소유자는 **세션 토큰에서만** 읽는다(`viewer.uid`). 쿼리·본문의 `userId` 는
+ * 예전 화면이 아직 보내지만 무시한다. 조회는 항상 `{ _id, userId: viewer.uid }` —
+ * 예전에는 `userId` 를 빼면 id 만으로 아무 기록이나 돌려줬다.
+ * → lib/auth.ts
+ */
 export const runtime = "nodejs";
 
 function toDateKey(d: Date): string {
@@ -10,15 +19,16 @@ function toDateKey(d: Date): string {
   return kst.toISOString().slice(0, 10);
 }
 
-/** GET /api/blood/[id]?userId= — userId를 주면 그 사람의 기록만 돌려준다 */
+/** GET /api/blood/[id] — 내 기록일 때만 돌려준다 */
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const auth = await requireViewer(req);
+  if ("error" in auth) return auth.error;
+  const userId = auth.viewer.uid;
+
   const { id } = await ctx.params;
-  const userId = new URL(req.url).searchParams.get("userId")?.trim();
 
   await connectDB();
-  const row = await getBloodTestModel()
-    .findOne(userId ? { _id: id, userId } : { _id: id })
-    .lean();
+  const row = await getBloodTestModel().findOne({ _id: id, userId }).lean();
   if (!row) {
     return NextResponse.json({ ok: false, error: "기록을 찾을 수 없어요." }, { status: 404 });
   }
@@ -37,6 +47,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
  * payload에 없는 형제 필드가 조용히 사라졌다.
  */
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const auth = await requireViewer(req);
+  if ("error" in auth) return auth.error;
+  const userId = auth.viewer.uid;
+
   const { id } = await ctx.params;
 
   let body: Record<string, unknown>;
@@ -44,11 +58,6 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     body = (await req.json()) as Record<string, unknown>;
   } catch {
     return NextResponse.json({ ok: false, error: "잘못된 요청입니다." }, { status: 400 });
-  }
-
-  const userId = String(body.userId ?? "").trim();
-  if (!userId) {
-    return NextResponse.json({ ok: false, error: "userId가 필요합니다." }, { status: 400 });
   }
 
   await connectDB();
@@ -97,22 +106,23 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   if (body.note !== undefined) set.note = body.note;
   if (body.lab !== undefined) set.lab = body.lab;
 
-  const saved = await Model.findByIdAndUpdate(id, { $set: set }, { new: true });
+  // 위에서 소유자를 확인했지만 갱신도 같은 필터로 한다 — 조회와 갱신 사이를 믿지 않는다
+  const saved = await Model.findOneAndUpdate({ _id: id, userId }, { $set: set }, { new: true });
   return NextResponse.json({ ok: true, test: saved, warnings });
 }
 
 /**
- * DELETE /api/blood/[id]?userId=
+ * DELETE /api/blood/[id]
  *
  * **소유자까지 함께 조회한다.** id만 보고 지우면 남의 기록 id를 넣어 지울 수 있다.
  * (인바디의 삭제 라우트가 같은 방식으로 `{_id, userId}`를 함께 본다.)
  */
 export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const auth = await requireViewer(req);
+  if ("error" in auth) return auth.error;
+  const userId = auth.viewer.uid;
+
   const { id } = await ctx.params;
-  const userId = new URL(req.url).searchParams.get("userId")?.trim();
-  if (!userId) {
-    return NextResponse.json({ ok: false, error: "userId가 필요합니다." }, { status: 400 });
-  }
 
   await connectDB();
   const res = await getBloodTestModel().deleteOne({ _id: id, userId });

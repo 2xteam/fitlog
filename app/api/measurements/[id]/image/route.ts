@@ -5,6 +5,7 @@ import { connectDB } from "@/lib/db";
 import { getMeasurementModel } from "@/models/Measurement";
 import { describeR2Error, getR2Bucket, getR2Client, getR2PublicUrl } from "@/lib/r2";
 import { readMultipartImage } from "@/lib/readMultipartImage";
+import { requireViewer } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -19,15 +20,15 @@ export async function POST(
   req: Request,
   ctx: { params: Promise<{ id: string }> },
 ) {
+  const auth = await requireViewer(req);
+  if ("error" in auth) return auth.error;
+  // 소유자는 세션에서만. 폼의 `userId` 필드는 예전 화면이 보내도 무시한다 → lib/auth.ts
+  const userId = auth.viewer.uid;
+
   const { id } = await ctx.params;
 
   const read = await readMultipartImage(req);
   if (!read.ok) return read.response;
-
-  const userId = read.userId?.trim();
-  if (!userId) {
-    return NextResponse.json({ ok: false, error: "로그인이 필요합니다." }, { status: 401 });
-  }
 
   await connectDB();
   const row = await getMeasurementModel().findOne({ _id: id, userId }).lean();

@@ -1,7 +1,8 @@
 import mongoose, { type HydratedDocument } from "mongoose";
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
-import { normalizePhone } from "@/lib/phone";
+import { requireViewer } from "@/lib/auth";
+import { requireConsents } from "@/lib/requireConsent";
 import { generateChatSubjectLine, runChatTurn } from "@/lib/chatOpenAi";
 import { isOpenAiKeyConfigured } from "@/lib/openaiKey";
 import {
@@ -9,7 +10,6 @@ import {
   listConversationMessages,
 } from "@/lib/openAiConversations";
 import { ChatThread, type ChatThreadDocument } from "@/models/ChatThread";
-import { getUserModel } from "@/models/User";
 import { deductTokens } from "@/lib/useToken";
 import { buildBloodContext, buildMeasurementContext } from "@/lib/measurementContext";
 
@@ -19,34 +19,31 @@ export const maxDuration = 60;
 
 type ChatThreadHydrated = HydratedDocument<ChatThreadDocument>;
 
+/**
+ * 스레드가 **이 회원의 것**인지 본다.
+ *
+ * 소유자는 세션 토큰의 `viewer.uid` 다. 예전 화면이 보내는 `phone`·`userId` 는
+ * 무시한다 — 전화번호는 쿠키에 평문으로 있어 누구나 맞출 수 있었다.
+ * `chat_threads.userId` 는 ObjectId 라 문자열을 바꿔 넣는다. → lib/auth.ts
+ */
 async function assertThread(
   threadId: string,
-  phone: string,
-  userId: string,
+  ownerUid: string,
 ): Promise<{ ok: true; thread: ChatThreadHydrated } | { ok: false; response: NextResponse }> {
-  const p = normalizePhone(phone);
-  if (!mongoose.isValidObjectId(threadId) || !p || !mongoose.isValidObjectId(userId)) {
+  if (!mongoose.isValidObjectId(threadId)) {
     return {
       ok: false,
       response: NextResponse.json(
-        { ok: false, error: "threadId, phone, userId가 필요합니다." },
+        { ok: false, error: "threadId가 올바르지 않습니다." },
         { status: 400 },
       ),
     };
   }
 
   await connectDB();
-  const user = await getUserModel().findById(userId).exec();
-  if (!user || user.phone !== p) {
-    return {
-      ok: false,
-      response: NextResponse.json({ ok: false, error: "권한이 없습니다." }, { status: 403 }),
-    };
-  }
-
   const thread = await ChatThread.findOne({
     _id: new mongoose.Types.ObjectId(threadId),
-    userId: new mongoose.Types.ObjectId(userId),
+    userId: new mongoose.Types.ObjectId(ownerUid),
   }).exec();
 
   if (!thread) {
@@ -71,12 +68,11 @@ export async function GET(
       );
     }
 
-    const { threadId } = await ctx.params;
-    const url = new URL(req.url);
-    const phone = url.searchParams.get("phone") ?? "";
-    const userId = url.searchParams.get("userId") ?? "";
+    const auth = await requireViewer(req);
+    if ("error" in auth) return auth.error;
 
-    const gate = await assertThread(threadId, phone, userId);
+    const { threadId } = await ctx.params;
+    const gate = await assertThread(threadId, auth.viewer.uid);
     if (!gate.ok) return gate.response;
 
     const convId = (gate.thread.openAiConversationId ?? "").trim();
@@ -123,8 +119,20 @@ export async function POST(
       );
     }
 
+    const auth = await requireViewer(req);
+    if ("error" in auth) return auth.error;
+    const userId = auth.viewer.uid;
+
+    /*
+      분리 동의를 **서버에서** 본다. 이 턴은 사용자의 인바디·피검사 수치를
+      OpenAI `instructions` 에 실어 보낸다(lib/measurementContext.ts) — 건강정보 처리와
+      국외 이전 동의가 둘 다 있어야 한다. 없으면 412 → lib/requireConsent.ts
+    */
+    const consentDenied = await requireConsents(userId, ["health", "overseas"]);
+    if (consentDenied) return consentDenied;
+
     const { threadId } = await ctx.params;
-    let body: { phone?: string; userId?: string; text?: string };
+    let body: { text?: string };
     try {
       body = await req.json();
     } catch {
@@ -134,8 +142,6 @@ export async function POST(
       );
     }
 
-    const phone = typeof body.phone === "string" ? body.phone : "";
-    const userId = typeof body.userId === "string" ? body.userId.trim() : "";
     const text = typeof body.text === "string" ? body.text.trim() : "";
 
     if (!text) {
@@ -145,7 +151,7 @@ export async function POST(
       );
     }
 
-    const gate = await assertThread(threadId, phone, userId);
+    const gate = await assertThread(threadId, userId);
     if (!gate.ok) return gate.response;
     const thread = gate.thread;
 

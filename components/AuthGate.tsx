@@ -59,7 +59,11 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       return;
     }
     writeBounces(bounces);
-    window.location.replace(loginUrl(next));
+
+    // 토큰 없는 세션은 포털이 그대로 되돌려보내므로 로그인 화면을 강제한다
+    window.location.replace(
+      loginUrl(next, { relogin: session.status === "unusable" }),
+    );
   }, [session.status, next]);
 
   if (stuck) {

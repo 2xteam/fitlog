@@ -47,7 +47,7 @@ export function EmailBanner() {
   useEffect(() => {
     if (session.status !== "signed-in") return;
     // 이메일이 이미 있으면 여기서 할 말이 없다. 인증 여부는 포털이 챙긴다
-    if (session.user.email) return;
+    if (session.user.hasEmail || session.user.email) return;
     /*
       포털과 세션을 나눠 쓰지 못하는 곳(로컬 개발·`*.vercel.app`)에서는 띄우지
       않는다. 링크를 눌러 운영 포털에 가 봐야 그 세션이 여기로 돌아오지 않는다

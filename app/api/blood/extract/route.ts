@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { requireViewer } from "@/lib/auth";
 import { requireConsents } from "@/lib/requireConsent";
 import { readMultipartImage } from "@/lib/readMultipartImage";
 import { extractBloodTestFromImage, VISION_MODEL } from "@/lib/bloodVision";
@@ -28,17 +29,22 @@ export async function POST(req: Request) {
     );
   }
 
-  const parsed = await readMultipartImage(req);
-  if (!parsed.ok) return parsed.response;
+  // 누구의 요청인지는 세션 토큰으로만 정한다. 폼의 `userId` 는 무시한다 → lib/auth.ts
+  const auth = await requireViewer(req);
+  if ("error" in auth) return auth.error;
+  const userId = auth.viewer.uid;
 
   /*
     분리 동의를 **서버에서** 본다. 화면에서만 막으면 이 라우트를
     직접 부르는 쪽이 그대로 통과한다. 없으면 412 → lib/requireConsent.ts
+    사진이 OpenAI 로 나가기 전에 — 본문을 읽기 전에 — 막는다.
   */
-  const consentDenied = await requireConsents(parsed.userId, ["health", "overseas"]);
+  const consentDenied = await requireConsents(userId, ["health", "overseas"]);
   if (consentDenied) return consentDenied;
 
-  const { buffer, mimeType, userId } = parsed;
+  const parsed = await readMultipartImage(req);
+  if (!parsed.ok) return parsed.response;
+  const { buffer, mimeType } = parsed;
 
   let data;
   try {
@@ -63,7 +69,7 @@ export async function POST(req: Request) {
   let imageError: string | null = null;
   try {
     const ext = mimeType.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
-    const key = `fitlog/blood/${userId ?? "unknown"}/${Date.now()}-${crypto
+    const key = `fitlog/blood/${userId}/${Date.now()}-${crypto
       .randomBytes(6)
       .toString("hex")}.${ext}`;
     await getR2Client().send(

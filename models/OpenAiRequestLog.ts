@@ -27,12 +27,19 @@ const OpenAiRequestLogSchema = new Schema(
     inputImageBytes: { type: Number, default: null },
     inputImageMime: { type: String, default: null },
     inputImageDetail: { type: String, default: null },
-    createdAt: { type: Date, default: Date.now, index: true },
+    createdAt: { type: Date, default: Date.now },
   },
   { versionKey: false },
 );
 
 OpenAiRequestLogSchema.index({ createdAt: -1, kind: 1 });
+/**
+ * 보관 기간 90일 — 방침 5항. 비용·장애 분석용이라 그 이상 둘 이유가 없다.
+ * ⚠️ 옛 단일 인덱스 `createdAt_1` 이 남아 있으면 키가 같아 TTL 생성이 충돌한다.
+ * 운영 DB 는 myjane/scripts/ensure-ttl.mjs 로 옛 인덱스를 지우고 만들었다 (2026-09-09).
+ * → my-obsidian-vault / 50-Plans/E 개인정보 보호 보강.md 8번
+ */
+OpenAiRequestLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 7776000, name: "ttl_createdAt_90d" });
 
 export type OpenAiRequestLogDocument = InferSchemaType<typeof OpenAiRequestLogSchema> & {
   _id: mongoose.Types.ObjectId;

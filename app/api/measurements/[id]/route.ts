@@ -1,21 +1,28 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { getMeasurementModel } from "@/models/Measurement";
-import { getUserModel } from "@/models/User";
 import { computeDerived, validateMeasurement } from "@/lib/inbody";
+import { requireViewer } from "@/lib/auth";
 
-/** 측정 1건 조회·수정·삭제 */
+/**
+ * 측정 1건 조회·수정·삭제.
+ *
+ * 소유자는 **세션 토큰에서만** 읽는다(`viewer.uid`). 쿼리·본문의 `userId` 는
+ * 예전 화면이 아직 보내지만 무시한다 — 믿으면 남의 `_id` 로 남의 기록을
+ * 읽고 고치고 지울 수 있다. 조회는 항상 `{ _id, userId: viewer.uid }` 다.
+ * → lib/auth.ts
+ */
 export const runtime = "nodejs";
 
 export async function GET(
   req: Request,
   ctx: { params: Promise<{ id: string }> },
 ) {
+  const auth = await requireViewer(req);
+  if ("error" in auth) return auth.error;
+  const userId = auth.viewer.uid;
+
   const { id } = await ctx.params;
-  const userId = new URL(req.url).searchParams.get("userId")?.trim();
-  if (!userId) {
-    return NextResponse.json({ ok: false, error: "userId가 필요합니다." }, { status: 400 });
-  }
 
   await connectDB();
   const row = await getMeasurementModel().findOne({ _id: id, userId }).lean();
@@ -97,6 +104,11 @@ export async function PATCH(
   req: Request,
   ctx: { params: Promise<{ id: string }> },
 ) {
+  const auth = await requireViewer(req);
+  if ("error" in auth) return auth.error;
+  const { viewer } = auth;
+  const userId = viewer.uid;
+
   const { id } = await ctx.params;
 
   let body: Record<string, unknown>;
@@ -104,11 +116,6 @@ export async function PATCH(
     body = (await req.json()) as Record<string, unknown>;
   } catch {
     return NextResponse.json({ ok: false, error: "잘못된 요청입니다." }, { status: 400 });
-  }
-
-  const userId = String(body.userId ?? "").trim();
-  if (!userId) {
-    return NextResponse.json({ ok: false, error: "로그인이 필요합니다." }, { status: 401 });
   }
 
   await connectDB();
@@ -172,8 +179,7 @@ export async function PATCH(
   const obesity = (merged.obesity ?? {}) as Record<string, { value?: number }>;
   const research = (merged.research ?? {}) as Record<string, number>;
 
-  const user = await getUserModel().findById(userId).lean();
-  const heightCm = user?.heightCm ?? null;
+  const heightCm = viewer.doc.heightCm ?? null;
 
   const warnings = validateMeasurement({
     weight: composition.weight?.value ?? null,
@@ -211,11 +217,11 @@ export async function DELETE(
   req: Request,
   ctx: { params: Promise<{ id: string }> },
 ) {
+  const auth = await requireViewer(req);
+  if ("error" in auth) return auth.error;
+  const userId = auth.viewer.uid;
+
   const { id } = await ctx.params;
-  const userId = new URL(req.url).searchParams.get("userId")?.trim();
-  if (!userId) {
-    return NextResponse.json({ ok: false, error: "userId가 필요합니다." }, { status: 400 });
-  }
 
   await connectDB();
   const res = await getMeasurementModel().deleteOne({ _id: id, userId });

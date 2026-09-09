@@ -1,32 +1,27 @@
 import mongoose from "mongoose";
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
-import { normalizePhone } from "@/lib/phone";
+import { requireViewer, serverError } from "@/lib/auth";
 import { ChatThread } from "@/models/ChatThread";
-import { getUserModel } from "@/models/User";
 
 export const runtime = "nodejs";
 
+/**
+ * 상담 스레드 목록·생성.
+ *
+ * 소유자는 **세션 토큰에서만** 읽는다(`viewer.uid`). 예전 화면이 보내는
+ * `phone`·`userId` 는 무시한다 — 전화번호는 쿠키에 평문으로 있어 누구나 맞출 수 있었다.
+ * `chat_threads.userId` 는 ObjectId 라 문자열 `uid` 를 바꿔 넣는다.
+ * → lib/auth.ts
+ */
 export async function GET(req: Request) {
   try {
-    const url = new URL(req.url);
-    const phone = normalizePhone(url.searchParams.get("phone") ?? "");
-    const userId = url.searchParams.get("userId") ?? "";
-
-    if (!phone || !mongoose.isValidObjectId(userId)) {
-      return NextResponse.json(
-        { ok: false, error: "phone, userId가 필요합니다." },
-        { status: 400 },
-      );
-    }
+    const auth = await requireViewer(req);
+    if ("error" in auth) return auth.error;
+    const owner = new mongoose.Types.ObjectId(auth.viewer.uid);
 
     await connectDB();
-    const user = await getUserModel().findById(userId).exec();
-    if (!user || user.phone !== phone) {
-      return NextResponse.json({ ok: false, error: "권한이 없습니다." }, { status: 403 });
-    }
-
-    const items = await ChatThread.find({ userId: new mongoose.Types.ObjectId(userId) })
+    const items = await ChatThread.find({ userId: owner })
       .sort({ updatedAt: -1 })
       .limit(100)
       .lean()
@@ -34,15 +29,17 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ ok: true, items });
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    return serverError(err);
   }
 }
 
 export async function POST(req: Request) {
   try {
-    let body: { phone?: string; userId?: string; title?: string };
+    const auth = await requireViewer(req);
+    if ("error" in auth) return auth.error;
+    const owner = new mongoose.Types.ObjectId(auth.viewer.uid);
+
+    let body: { title?: string };
     try {
       body = await req.json();
     } catch {
@@ -52,35 +49,16 @@ export async function POST(req: Request) {
       );
     }
 
-    const phone = normalizePhone(typeof body.phone === "string" ? body.phone : "");
-    const userId = typeof body.userId === "string" ? body.userId.trim() : "";
     const title =
       typeof body.title === "string" && body.title.trim()
         ? body.title.trim()
         : "새 대화";
 
-    if (!phone || !mongoose.isValidObjectId(userId)) {
-      return NextResponse.json(
-        { ok: false, error: "phone, userId가 필요합니다." },
-        { status: 400 },
-      );
-    }
-
     await connectDB();
-    const user = await getUserModel().findById(userId).exec();
-    if (!user || user.phone !== phone) {
-      return NextResponse.json({ ok: false, error: "권한이 없습니다." }, { status: 403 });
-    }
-
-    const doc = await ChatThread.create({
-      userId: new mongoose.Types.ObjectId(userId),
-      title,
-    });
+    const doc = await ChatThread.create({ userId: owner, title });
 
     return NextResponse.json({ ok: true, id: String(doc._id) });
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    return serverError(err);
   }
 }
