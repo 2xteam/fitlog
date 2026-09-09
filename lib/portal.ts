@@ -88,9 +88,12 @@ export function forgotPinUrl(): string {
 export function consentUrl(
   kind: "health" | "overseas" | "guardian",
   backTo = "/home",
+  /** 이어서 받을 동의들 — 포털이 하나 끝나면 다음 동의 화면으로 넘기고, 다 끝나면 backTo 로 돌려보낸다 */
+  then: Array<"health" | "overseas" | "guardian"> = [],
 ): string {
   const back = `${typeof location !== "undefined" ? location.origin : ""}${safePath(backTo)}`;
-  return `${PORTAL_ORIGIN}/account/consent/${kind}?next=${encodeURIComponent(back)}`;
+  const chain = then.length ? `&then=${encodeURIComponent(then.join(","))}` : "";
+  return `${PORTAL_ORIGIN}/account/consent/${kind}?next=${encodeURIComponent(back)}${chain}`;
 }
 
 /**

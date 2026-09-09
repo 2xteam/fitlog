@@ -61,9 +61,16 @@ export function BodyRadar({
   measuredAt?: string;
 }) {
   if (axes.length < 3) {
+    /* 무엇이 빠졌는지 말해 준다 — "필요해요" 만 뜨면 사람은 무엇을 해야 할지 모른다 */
+    const have = new Set(axes.map((a) => a.label));
+    const missing = ["체중", "골격근량", "체지방률"].filter((l) => !have.has(l));
     return (
       <p className="field-hint" style={{ margin: 0 }}>
         체중·골격근량·체지방률이 모두 있는 기록이 필요해요.
+        {missing.length ? ` 지금 기록에는 ${missing.join("·")}${missing.length === 1 ? "이" : "가"} 없거나 적정 범위를 알 수 없어요.` : ""}
+        {missing.includes("체중") || missing.includes("골격근량")
+          ? " 결과지에 범위가 인쇄되지 않았다면 My 에서 키·성별을 채우면 계산할 수 있어요."
+          : ""}
       </p>
     );
   }

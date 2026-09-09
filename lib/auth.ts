@@ -61,7 +61,26 @@ export async function getViewer(req: Request): Promise<Viewer | null> {
 export async function requireViewer(
   req: Request,
 ): Promise<{ viewer: Viewer } | { error: NextResponse }> {
-  const viewer = await getViewer(req);
+  let viewer: Viewer | null;
+  try {
+    viewer = await getViewer(req);
+  } catch (e) {
+    /*
+      SESSION_SECRET 이 없으면 검증기가 던진다. 그대로 두면 본문이 빈 500 이 나가
+      화면이 이유를 보여 주지 못한다 — 설정 누락은 이유가 담긴 503 으로 떨어뜨린다.
+      (2026-09-09 운영에서 겪었다 → 10-Projects/FitLog.md)
+    */
+    const message = e instanceof Error ? e.message : "";
+    if (/SESSION_SECRET/.test(message)) {
+      return {
+        error: NextResponse.json(
+          { ok: false, error: "서버 설정이 빠졌습니다 (SESSION_SECRET). 운영자에게 알려 주세요." },
+          { status: 503 },
+        ),
+      };
+    }
+    throw e;
+  }
   if (!viewer) {
     return {
       error: NextResponse.json(
