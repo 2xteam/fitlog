@@ -40,8 +40,6 @@ export default function InbodyPage() {
   const [trendOpen, setTrendOpen] = useState<Set<string>>(new Set());
   /** 등록된 결과지 목록 펼침 */
   const [recordsOpen, setRecordsOpen] = useState(false);
-  /** 업로드 히스토리 — 기본 8건, 전체 보기 */
-  const [historyAll, setHistoryAll] = useState(false);
 
   useEffect(() => {
     const s = loadSession();
@@ -260,66 +258,6 @@ export default function InbodyPage() {
               않아요. 몸에 이상이 느껴지면 진료를 받아보세요.
             </p>
           </div>
-        </Sheet>
-      ) : null}
-
-      {/*
-        업로드 히스토리 — 등록 일자별로 상세로 가는 **길목**. 늘 펼쳐 둔다.
-        추이 그래프의 점도 상세로 가지만, 날짜를 보고 바로 찾아가는 길이 따로 필요했다 (2026-09-09).
-        아래 RECORDS 는 카드가 커서 접어 두므로 여기는 한 줄짜리 목록이다.
-      */}
-      {rows && rows.length > 0 ? (
-        <Sheet eyebrow="HISTORY" headline="업로드 히스토리" lead="날짜를 누르면 그날 결과지 상세로 가요.">
-          <ul style={{ listStyle: "none", padding: 0, margin: "16px 0 0" }}>
-            {[...rows]
-              .sort((a, b) => new Date(b.measuredAt).getTime() - new Date(a.measuredAt).getTime())
-              .slice(0, historyAll ? rows.length : 8)
-              .map((row) => {
-                const w = pick(row, "composition.weight.value");
-                const smm = pick(row, "muscleFat.skeletalMuscleMass.value");
-                const pbf = pick(row, "obesity.percentBodyFat.value");
-                const manual = (row as { source?: string }).source === "manual";
-                return (
-                  <li key={`h-${row._id}`} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
-                    <Link
-                      href={`/measurements/${row._id}`}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 12,
-                        padding: "12px 2px",
-                        color: "var(--text-primary)",
-                        textDecoration: "none",
-                      }}
-                    >
-                      <span style={{ fontWeight: 700 }}>
-                        {fmtDate(row.measuredAt)}
-                        <span style={{ marginLeft: 8, fontSize: "0.75rem", fontWeight: 400, color: "var(--text-muted)" }}>
-                          {manual ? "체중만 기록" : "인바디 결과지"}
-                        </span>
-                      </span>
-                      <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "0.82rem", color: "var(--text-secondary)" }}>
-                        {w != null ? <span>{w}kg</span> : null}
-                        {smm != null ? <span>근 {smm}</span> : null}
-                        {pbf != null ? <span>지방 {pbf}%</span> : null}
-                        <span aria-hidden="true" style={{ color: "var(--text-muted)" }}>→</span>
-                      </span>
-                    </Link>
-                  </li>
-                );
-              })}
-          </ul>
-          {rows.length > 8 ? (
-            <button
-              type="button"
-              className="btn btn--ghost"
-              style={{ marginTop: 12, padding: "8px 14px", fontSize: 13 }}
-              onClick={() => setHistoryAll((v) => !v)}
-            >
-              {historyAll ? "접기" : `전체 보기 (${rows.length}건)`}
-            </button>
-          ) : null}
         </Sheet>
       ) : null}
 
