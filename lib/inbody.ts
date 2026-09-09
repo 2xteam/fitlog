@@ -346,6 +346,17 @@ export function buildRadarAxes(
       };
     }
   }
+  /*
+    그래도 없으면 키·성별로 추정한다 (2026-09-09). 결과지에 골격근량 범위도 제지방량 범위도
+    인쇄되지 않은 기종이 있어, 값은 있는데 축이 빠져 레이더에 점이 안 찍혔다.
+    표준체중(BMI 22)에 대한 인바디 표준범위의 대략적인 비율 — 남 44~54% · 여 37~45%.
+    추정이라 derived 로 표시하고 화면이 그렇게 밝힌다. 인쇄 범위가 있으면 그쪽이 우선이다.
+  */
+  if (!smmRange && h) {
+    const stdWeight = 22 * h * h;
+    const [lo, hi] = isFemale ? [0.37, 0.45] : [0.44, 0.54];
+    smmRange = { min: +(stdWeight * lo).toFixed(1), max: +(stdWeight * hi).toFixed(1), derived: true };
+  }
   add("muscleFat.skeletalMuscleMass.value", "골격근량", "kg", smmRange);
 
   // 체지방률 — 없으면 인바디 기준(남 10~20 / 여 18~28)
