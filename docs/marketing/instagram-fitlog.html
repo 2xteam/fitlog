@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FitLog · 인스타그램 카드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css" />
+<style>
+  /*
+    FitLog 인스타그램 카드 8장 — 1080×1080 정방형. 캡처해서 쓰는 용도.
+    색은 여섯 앱 먹청 팔레트(청백 #f7fbfb · 먹청 #116271 · 골드 #ead58c/#c9a84c),
+    서체는 본문 Pretendard · 헤드라인 Gowun Batang 700. 카피는 소개 페이지(app/page.tsx)와 같은 문장,
+    해요체·숫자로 증명하지 않기(결쩜사 톤).
+    캡처: 각 카드는 정확히 1080px. 브라우저 확대 100% 에서 카드 영역만 캡처하거나, 상단 [카드만 보기] 로 하나씩.
+  */
+  :root {
+    --bg: #f7fbfb; --surface: #ffffff; --tint: #e8f2f3;
+    --ink: #0f2027; --dim: #566b70; --border: #d5e3e5;
+    --accent: #116271; --accent-2: #1a7f8f; --deep: #0b4550; --deeper: #071c22;
+    --gold: #ead58c; --gold-ink: #a8842f;
+    --success: #2f8f6b; --success-subtle: #dcefe6; --danger: #c8443f; --warning: #b98a1e;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #e4ecee; font-family: Pretendard, -apple-system, "Segoe UI", sans-serif; color: var(--ink); }
+  .toolbar { position: sticky; top: 0; z-index: 10; display: flex; gap: 10px; align-items: center; padding: 12px 20px; background: rgba(228,236,238,.92); backdrop-filter: blur(6px); font-size: 13px; color: var(--dim); }
+  .toolbar button { font: inherit; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); background: #fff; cursor: pointer; }
+  .toolbar button[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .deck { display: grid; gap: 40px; padding: 30px 20px 80px; justify-content: center; }
+  body.solo .deck { gap: 0; padding: 0; }
+  body.solo .card { display: none; }
+  body.solo .card.show { display: flex; }
+
+  .card { width: 1080px; height: 1080px; position: relative; overflow: hidden; display: flex; flex-direction: column; padding: 96px; background: var(--surface); }
+  .card.dark { background: linear-gradient(160deg, var(--accent-2) 0%, var(--deep) 62%, var(--deeper) 100%); color: #eef7f8; }
+  .card.tint { background: var(--tint); }
+  .card.gold { background: linear-gradient(160deg, #fdf7e4 0%, #f7ecc6 100%); }
+  .eyebrow { font-size: 22px; letter-spacing: .22em; font-weight: 800; color: var(--accent); text-transform: uppercase; }
+  .dark .eyebrow { color: var(--gold); }
+  h1, h2 { font-family: "Gowun Batang", serif; font-weight: 700; margin: 26px 0 0; letter-spacing: -0.01em; line-height: 1.22; }
+  h1 { font-size: 88px; } h2 { font-size: 72px; }
+  .lead { font-size: 32px; line-height: 1.6; color: var(--dim); margin: 34px 0 0; max-width: 860px; }
+  .dark .lead { color: #cfe3e6; }
+  .hl { color: var(--gold); }
+  .mark { background: linear-gradient(transparent 58%, #ead58c 58%, #ead58c 92%, transparent 92%); padding: 0 4px; }
+  .foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; font-size: 24px; color: var(--dim); }
+  .dark .foot { color: #a9c6cb; }
+  .brand { display: flex; align-items: center; gap: 16px; font-weight: 800; letter-spacing: -0.02em; font-size: 30px; }
+  .brand svg { width: 64px; height: 64px; border-radius: 16px; }
+  .url { font-weight: 700; }
+  .idx { font-variant-numeric: tabular-nums; }
+
+  /* 카드 4·5·6 시각 */
+  .viz { margin-top: 40px; display: grid; place-items: center; flex: 1; }
+  .viz svg { width: 100%; max-height: 520px; }
+  .steps { list-style: none; margin: 44px 0 0; padding: 0; display: grid; gap: 34px; }
+  .steps li { display: grid; grid-template-columns: 84px 1fr; gap: 22px; align-items: start; }
+  .num { width: 84px; height: 84px; border-radius: 999px; display: grid; place-items: center; background: var(--accent); color: #fff; font-weight: 800; font-size: 28px; font-variant-numeric: tabular-nums; }
+  .steps h3 { margin: 12px 0 8px; font-size: 38px; font-weight: 800; letter-spacing: -0.01em; }
+  .steps p { margin: 0; font-size: 27px; line-height: 1.55; color: var(--dim); }
+  .feat { margin-top: 40px; display: grid; gap: 18px; }
+  .feat div { padding: 26px 30px; border-radius: 22px; background: var(--surface); border: 1px solid var(--border); }
+  .tint .feat div, .gold .feat div { background: rgba(255,255,255,.75); }
+  .feat strong { font-size: 32px; display: block; margin-bottom: 8px; }
+  .feat p { margin: 0; font-size: 25px; line-height: 1.5; color: var(--dim); }
+  .cta { display: inline-block; margin-top: 44px; padding: 26px 44px; border-radius: 999px; background: var(--gold); color: var(--deeper); font-weight: 800; font-size: 32px; letter-spacing: -0.01em; }
+  .pill { display: inline-block; padding: 10px 20px; border-radius: 999px; background: var(--tint); color: var(--accent); font-weight: 700; font-size: 24px; margin-right: 10px; }
+  .dark .pill { background: rgba(255,255,255,.12); color: #eef7f8; }
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <span>FitLog 인스타그램 카드 · 1080×1080 · 8장</span>
+  <button id="solo" aria-pressed="false" onclick="toggleSolo()">카드만 보기</button>
+  <span id="nav" hidden><button onclick="go(-1)">◀</button> <span id="pos"></span> <button onclick="go(1)">▶</button></span>
+</div>
+
+<div class="deck" id="deck">
+
+<!-- 1 · 표지 -->
+<section class="card dark" data-i="1">
+  <div class="eyebrow">FITLOG · BODY &amp; BLOOD</div>
+  <h1>결과지를 찍으면,<br /><span class="hl">추이가 남습니다.</span></h1>
+  <p class="lead">인바디와 피검사 결과지를 찍어 두면 인쇄된 항목을 모두 읽어 날짜별로 쌓아 둡니다.<br />종이를 버려도 기록은 남아요.</p>
+  <div class="foot">
+    <div class="brand">
+      <svg viewBox="0 0 192 192"><defs><linearGradient id="g1" x1="0" y1="0" x2=".4" y2="1"><stop offset="0" stop-color="#134450"/><stop offset="1" stop-color="#071c22"/></linearGradient></defs><rect width="192" height="192" rx="44" fill="url(#g1)"/><g transform="rotate(158.96 96 106.46)" fill="none" stroke-width="11" stroke-linecap="round"><circle cx="96" cy="106.46" r="60" stroke="#4a95a6" stroke-dasharray="232.6 144.4"/><circle cx="96" cy="106.46" r="60" stroke="#ead58c" stroke-dasharray="128 249"/></g><path d="M64 114 L86 90 L106 100 L128 74" fill="none" stroke="#eef7f8" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      FitLog
+    </div>
+    <span class="url">fitlog.myjane.co.kr</span>
+  </div>
+</section>
+
+<!-- 2 · 문제 -->
+<section class="card tint" data-i="2">
+  <div class="eyebrow">WHY</div>
+  <h2>지난번 인바디,<br />어디 있나요?</h2>
+  <p class="lead">결과지는 서랍에서 사라지고, 사진은 앨범 어딘가에 묻혀요.<br />숫자 하나는 남아도 <strong>그때보다 나아졌는지</strong>는 알 수 없죠.</p>
+  <div class="feat">
+    <div><strong>종이 결과지</strong><p>기종마다 인쇄 항목이 달라 비교하려면 일일이 옮겨 적어야 해요.</p></div>
+    <div><strong>피검사 결과지</strong><p>회차마다 항목이 달라 어디가 달라졌는지 한눈에 들어오지 않아요.</p></div>
+  </div>
+  <div class="foot"><span>FitLog</span><span class="idx">2 / 8</span></div>
+</section>
+
+<!-- 3 · HOW IT WORKS -->
+<section class="card" data-i="3">
+  <div class="eyebrow">HOW IT WORKS</div>
+  <h2>세 걸음이면 됩니다</h2>
+  <ol class="steps">
+    <li><span class="num">01</span><div><h3>결과지를 찍는다</h3><p>인바디든 피검사든, 기종·검사기관이 달라도 인쇄된 항목을 그대로 읽습니다.</p></div></li>
+    <li><span class="num">02</span><div><h3>확인하고 저장한다</h3><p>읽어 온 값을 먼저 보여드립니다. 자동으로 저장하지 않습니다.</p></div></li>
+    <li><span class="num">03</span><div><h3>추이와 해설을 본다</h3><p>적정 범위와 겹쳐 지금 위치를, 항목별 그래프로 흐름을 봅니다.</p></div></li>
+  </ol>
+  <div class="foot"><span>FitLog</span><span class="idx">3 / 8</span></div>
+</section>
+
+<!-- 4 · 인바디 삼각 -->
+<section class="card" data-i="4">
+  <div class="eyebrow">INBODY</div>
+  <h2>핵심 3종을<br />적정 범위와 겹쳐 봐요</h2>
+  <div class="viz">
+    <svg viewBox="0 0 256 200" aria-label="체중·골격근량·체지방률 삼각 레이더">
+      <!-- 적정 띠 (R_OUT 0.78·R_IN 0.46 · R 74 · 중심 128,118) -->
+      <path d="M 128.0 60.3 L 178.0 146.9 L 78.0 146.9 Z M 128.0 84.0 L 157.5 135.0 L 98.5 135.0 Z" fill-rule="evenodd" fill="#dcefe6"/>
+      <path d="M 128.0 60.3 L 178.0 146.9 L 78.0 146.9 Z" fill="none" stroke="#2f8f6b" stroke-opacity=".45"/>
+      <path d="M 128.0 84.0 L 157.5 135.0 L 98.5 135.0 Z" fill="none" stroke="#2f8f6b" stroke-opacity=".45"/>
+      <line x1="128" y1="118" x2="128" y2="44" stroke="#d5e3e5"/><line x1="128" y1="118" x2="192.1" y2="155" stroke="#d5e3e5"/><line x1="128" y1="118" x2="63.9" y2="155" stroke="#d5e3e5"/>
+      <!-- 내 수치 -->
+      <path d="M 128.0 68.0 L 165.0 139.4 L 84.4 143.7 Z" fill="#116271" fill-opacity=".12" stroke="#116271" stroke-width="2.2" stroke-linejoin="round"/>
+      <circle cx="128" cy="68" r="4" fill="#2f8f6b" stroke="#fff" stroke-width="1.5"/><circle cx="165" cy="139.4" r="4" fill="#2f8f6b" stroke="#fff" stroke-width="1.5"/><circle cx="84.4" cy="143.7" r="4" fill="#116271" stroke="#fff" stroke-width="1.5"/>
+      <g font-family="Pretendard, sans-serif" text-anchor="middle" fill="#566b70" font-size="10.5" font-weight="700">
+        <text x="128" y="19">체중</text><text x="128" y="33" font-size="12" font-weight="800" fill="#0f2027">75.2<tspan font-size="8.5" font-weight="500">kg</tspan></text>
+        <text x="211" y="171">골격근량</text><text x="211" y="185" font-size="12" font-weight="800" fill="#0f2027">34.8<tspan font-size="8.5" font-weight="500">kg</tspan></text>
+        <text x="45" y="171">체지방률</text><text x="45" y="185" font-size="12" font-weight="800" fill="#0f2027">18.3<tspan font-size="8.5" font-weight="500">%</tspan></text>
+      </g>
+    </svg>
+  </div>
+  <p class="lead" style="margin-top:20px">음영이 적정 범위예요. 안쪽이면 부족, 바깥이면 초과. 기종이 달라도 인쇄된 항목을 모두 읽어요.</p>
+  <div class="foot"><span>FitLog</span><span class="idx">4 / 8</span></div>
+</section>
+
+<!-- 5 · 피검사 스포크 -->
+<section class="card tint" data-i="5">
+  <div class="eyebrow">BLOOD</div>
+  <h2>벗어난 항목만<br />골라서 알려줘요</h2>
+  <div class="viz">
+    <svg viewBox="0 0 320 248" aria-label="피검사 핵심 항목 스포크 차트">
+      <circle cx="160" cy="124" r="88" fill="none" stroke="#d5e3e5"/>
+      <!-- 스포크 5방향 (-90, -18, 54, 126, 198) -->
+      <g stroke="#d5e3e5"><line x1="160" y1="124" x2="160" y2="36"/><line x1="160" y1="124" x2="243.7" y2="96.8"/><line x1="160" y1="124" x2="211.7" y2="195.2"/><line x1="160" y1="124" x2="108.3" y2="195.2"/><line x1="160" y1="124" x2="76.3" y2="96.8"/></g>
+      <!-- 정상 범위 막대: 상한만(중심 근처~R_OUT) · 양쪽(R_IN~R_OUT) · 하한만(R_IN~R) -->
+      <g stroke="#2f8f6b" stroke-width="10" stroke-linecap="round" opacity=".38">
+        <line x1="160" y1="113.4" x2="160" y2="58.9"/>
+        <line x1="170.0" y1="120.7" x2="221.9" y2="103.9"/>
+        <line x1="166.2" y1="132.5" x2="198.3" y2="176.7"/>
+        <line x1="138.3" y1="153.9" x2="122.0" y2="176.4"/>
+        <line x1="124.9" y1="112.6" x2="76.3" y2="96.8"/>
+      </g>
+      <!-- 값 점: ALT 정상 · LDL 높음 · TG 정상 · HbA1c 정상 · eGFR 정상 -->
+      <g stroke="#fff" stroke-width="1.6">
+        <circle cx="160" cy="92" r="5" fill="#2f8f6b"/>
+        <circle cx="237.8" cy="98.7" r="8.5" fill="#c8443f" opacity=".18" stroke="none"/><circle cx="237.8" cy="98.7" r="5" fill="#c8443f"/>
+        <circle cx="180.6" cy="152.4" r="5" fill="#2f8f6b"/>
+        <circle cx="130.3" cy="164.9" r="5" fill="#2f8f6b"/>
+        <circle cx="96.7" cy="103.4" r="5" fill="#2f8f6b"/>
+      </g>
+      <g font-family="Pretendard, sans-serif" fill="#566b70" font-size="10.5" font-weight="700">
+        <text x="160" y="13" text-anchor="middle">ALT</text><text x="160" y="27" text-anchor="middle" font-size="12" font-weight="800" fill="#0f2027">16<tspan font-size="8" font-weight="500" fill="#566b70"> U/L</tspan></text>
+        <text x="262.7" y="87.6" text-anchor="start">LDL</text><text x="262.7" y="101.6" text-anchor="start" font-size="12" font-weight="800" fill="#c8443f">168 <tspan font-size="8.5">▲</tspan><tspan font-size="8" font-weight="500" fill="#566b70"> mg/dL</tspan></text>
+        <text x="223.5" y="208.3" text-anchor="start">중성지방</text><text x="223.5" y="222.3" text-anchor="start" font-size="12" font-weight="800" fill="#0f2027">95<tspan font-size="8" font-weight="500" fill="#566b70"> mg/dL</tspan></text>
+        <text x="96.5" y="208.3" text-anchor="end">HbA1c</text><text x="96.5" y="222.3" text-anchor="end" font-size="12" font-weight="800" fill="#0f2027">5.5<tspan font-size="8" font-weight="500" fill="#566b70"> %</tspan></text>
+        <text x="57.3" y="87.6" text-anchor="end">eGFR</text><text x="57.3" y="101.6" text-anchor="end" font-size="12" font-weight="800" fill="#0f2027">68.37</text>
+      </g>
+    </svg>
+  </div>
+  <p class="lead" style="margin-top:20px">초록 막대가 정상 범위, 점이 내 수치예요. 회차마다 항목이 달라도 <strong>이번에 봐야 할 것</strong>이 먼저 보여요.</p>
+  <div class="foot"><span>FitLog</span><span class="idx">5 / 8</span></div>
+</section>
+
+<!-- 6 · 추이 -->
+<section class="card" data-i="6">
+  <div class="eyebrow">WHAT YOU GET</div>
+  <h2>숫자 하나가 아니라<br /><span class="mark">흐름을</span> 봅니다</h2>
+  <div class="viz">
+    <svg viewBox="0 0 560 220" aria-label="체중 추이 그래프">
+      <g stroke="#e3edee"><line x1="44" y1="40" x2="540" y2="40"/><line x1="44" y1="100" x2="540" y2="100"/><line x1="44" y1="160" x2="540" y2="160"/></g>
+      <path d="M 60 120 L 156 98 L 252 106 L 348 78 L 444 66 L 520 52" fill="none" stroke="#116271" stroke-width="3"/>
+      <g fill="#116271"><circle cx="60" cy="120" r="5"/><circle cx="156" cy="98" r="5"/><circle cx="252" cy="106" r="5"/><circle cx="348" cy="78" r="5"/><circle cx="444" cy="66" r="5"/><circle cx="520" cy="52" r="6.5" fill="#a8842f"/></g>
+      <g font-family="Pretendard, sans-serif" font-size="12" fill="#566b70" text-anchor="middle">
+        <text x="60" y="196">25.3</text><text x="156" y="196">25.6</text><text x="252" y="196">25.9</text><text x="348" y="196">26.1</text><text x="444" y="196">26.4</text><text x="520" y="196" fill="#a8842f" font-weight="800">26.9</text>
+      </g>
+      <text x="520" y="36" font-family="Pretendard, sans-serif" font-size="14" font-weight="800" fill="#0f2027" text-anchor="middle">골격근량 ↑</text>
+    </svg>
+  </div>
+  <div class="feat">
+    <div><strong>항목별 추이</strong><p>인쇄된 항목 하나하나를 날짜순 그래프로. 점을 누르면 그날 결과지로 가요.</p></div>
+    <div><strong>체성분과 겹쳐 보기</strong><p>근육량이 많으면 신장 수치가 실제보다 낮게 나와요. 두 기록을 함께 가진 앱만 알려줄 수 있는 맥락이에요.</p></div>
+  </div>
+  <div class="foot"><span>FitLog</span><span class="idx">6 / 8</span></div>
+</section>
+
+<!-- 7 · 근거 / 태도 -->
+<section class="card gold" data-i="7">
+  <div class="eyebrow" style="color:var(--gold-ink)">EVIDENCE</div>
+  <h2>권장사항에는<br />근거를 붙여요</h2>
+  <p class="lead">수치가 벗어나면 운동·식습관·영양제를 제안하고, 어떤 진료지침과 연구에서 나온 말인지 펼쳐 볼 수 있어요.</p>
+  <div style="margin-top:34px"><span class="pill">근거 등급 A~D</span><span class="pill">출처 펼쳐보기</span><span class="pill">진단·처방은 하지 않아요</span></div>
+  <div class="feat" style="margin-top:34px">
+    <div><strong>기록이지, 진단이 아니에요</strong><p>몸에 이상이 느껴지면 진료를 받으세요. FitLog 은 기록을 읽고 생활 습관을 안내하는 데까지예요.</p></div>
+  </div>
+  <div class="foot"><span>FitLog</span><span class="idx">7 / 8</span></div>
+</section>
+
+<!-- 8 · CTA -->
+<section class="card dark" data-i="8">
+  <div class="eyebrow">START</div>
+  <h1>결과지 한 장만<br />찍어 볼까요?</h1>
+  <p class="lead">myjane 계정 하나로 들어와요. 기록과 데이터는 이 앱에만 쌓이고, 쓰지 않는 서비스는 열지 않아도 돼요.</p>
+  <span class="cta">fitlog.myjane.co.kr</span>
+  <div class="foot">
+    <div class="brand">
+      <svg viewBox="0 0 192 192"><defs><linearGradient id="g8" x1="0" y1="0" x2=".4" y2="1"><stop offset="0" stop-color="#134450"/><stop offset="1" stop-color="#071c22"/></linearGradient></defs><rect width="192" height="192" rx="44" fill="url(#g8)"/><g transform="rotate(158.96 96 106.46)" fill="none" stroke-width="11" stroke-linecap="round"><circle cx="96" cy="106.46" r="60" stroke="#4a95a6" stroke-dasharray="232.6 144.4"/><circle cx="96" cy="106.46" r="60" stroke="#ead58c" stroke-dasharray="128 249"/></g><path d="M64 114 L86 90 L106 100 L128 74" fill="none" stroke="#eef7f8" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      FitLog
+    </div>
+    <span>my<span style="color:#5fb8c9">jane</span></span>
+  </div>
+</section>
+
+</div>
+
+<script>
+  let cur = 1;
+  const cards = [...document.querySelectorAll('.card')];
+  function render() {
+    cards.forEach(c => c.classList.toggle('show', Number(c.dataset.i) === cur));
+    document.getElementById('pos').textContent = cur + ' / ' + cards.length;
+  }
+  function toggleSolo() {
+    const on = document.body.classList.toggle('solo');
+    document.getElementById('solo').setAttribute('aria-pressed', String(on));
+    document.getElementById('nav').hidden = !on;
+    render();
+  }
+  function go(d) { cur = Math.min(cards.length, Math.max(1, cur + d)); render(); }
+  document.addEventListener('keydown', e => { if (!document.body.classList.contains('solo')) return; if (e.key === 'ArrowRight') go(1); if (e.key === 'ArrowLeft') go(-1); });
+</script>
+</body>
+</html>
