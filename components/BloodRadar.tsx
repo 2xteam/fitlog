@@ -4,32 +4,30 @@ import { gaugeFor, isConcerning, resultOf, statusOf, STATUS_LABELS, type BloodRo
 import type { Analyte } from "@/lib/bloodCatalog";
 
 /**
- * 피검사 항목 레이더 — **항목 수만큼 축을 가진 다각형** (2026-09-09 사용자 요청).
+ * 피검사 항목 **스포크 차트** — 항목 수만큼 방향을 나눈다 (2026-09-09, 사용자와 여섯 번째로 정한 최종 모양).
  *
- * 참고구간은 **항목마다 부채꼴(섹터) 안의 연두색 면**으로 그린다 (2026-09-09, 같은 날 네 번째 —
- * 사용자와 함께 정한 최종 모양). 원을 항목 수만큼 부채꼴로 나누고, 각 부채꼴에 그 항목의 정상
- * 구간을 칠한다. 꼭짓점을 이은 고리(띠)로는 "X 이상/이하가 정상"인 한쪽 참고치를 그릴 수 없고,
- * 축 위의 얇은 막대는 선 위에 선이라 어수선했다. 면은 둘 다 해결한다:
+ * 항목마다 자기 방향의 스포크 위에 **정상 범위를 라운드 막대**로, **내 값을 점**으로 놓는다.
+ * 점이 막대 위면 정상, 막대 밖이면 벗어난 것이고 막대에서 멀수록 많이 벗어난 것이다.
+ * 정상 범위의 하한·상한은 모든 방향에서 같은 반지름(R_IN·R_OUT)이라 막대가 고르게 놓이고,
+ * 한쪽 참고치는 막대가 중심 가까이에서 시작하거나(상한만) 바깥까지 이어진다(하한만).
+ * 높음·낮음은 값 옆 ▲ ▼ 과 점 색으로 가른다.
  *
- *   양쪽 참고치 (a~b)   고리 조각 R_IN ~ R_OUT        값: 하한→R_IN, 상한→R_OUT 비율
- *   상한만 (<= X)       중심부터 채운 조각 0 ~ R_OUT   값: 0→중심, X→R_OUT
- *   하한만 (>= X)       바깥까지 채운 조각 R_IN ~ R    값: X→R_IN, 1.6X→R_OUT (그 위는 끝까지)
+ * 거쳐 온 모양과 안 맞았던 이유 —
+ *   꼭짓점을 이은 띠      한쪽 참고치를 그릴 수 없다
+ *   축 위 막대 + 연결선   선 위에 선이라 어수선했다 (연결선을 빼자 이 모양이 됐다)
+ *   부채꼴 안의 면        "이 안 어디든 값이 놓일 수 있다" 는 인상
+ *   정상 원(면) + 점      정상 범위의 어디쯤인지가 안 보였다
  *
- * 점은 부채꼴 중심선 위에 찍는다. 점이 초록 면 안이면 정상, 면에서 멀수록 많이 벗어난 것이다.
- * 점을 잇는 선은 그리지 않는다 — 정보가 없고 모양만 만든다.
- * 이번 검사에 없는 항목은 축선을 점선으로, 값을 `—` 로 비워 두고 도형은 유지한다.
- * eGFR·HDL 처럼 높을수록 좋은 항목은 바깥으로 나가도 위험색이 아니다.
- *
- * 막대(`BloodGauge`)는 상세 화면과 "벗어난 항목" 카드에 그대로 남는다.
+ * 이번 검사에 없는 항목은 스포크를 점선으로, 값을 `—` 로 비워 둔다. eGFR·HDL 처럼 높을수록
+ * 좋은 항목은 막대 밖으로 나가도 위험색이 아니다. 막대(`BloodGauge`)는 상세 화면에 그대로 남는다.
  */
 
-const R = 84; // 원의 반지름 — 하한만 있는 항목의 면은 여기까지 찬다
-const R_0 = 0; // 상한만 있는 항목의 면은 중심부터
+const R = 88; // 가장 바깥 (많이 벗어난 값이 닿는 곳 · 하한만 있는 항목의 막대 끝)
+const R_0 = 0.12 * R; // 상한만 있는 항목의 막대 시작 (중심 근처)
 const R_MIN = 0.1 * R; // 점이 들어갈 수 있는 가장 안쪽
-const R_MAX = 0.95 * R; // 점이 나갈 수 있는 가장 바깥
-const R_IN = 0.46 * R; // 참고구간 하한이 놓이는 반지름
-const R_OUT = 0.78 * R; // 참고구간 상한이 놓이는 반지름
-const GAP_DEG = 4; // 부채꼴 사이 틈
+const R_MAX = 0.96 * R; // 점이 나갈 수 있는 가장 바깥
+const R_IN = 0.42 * R; // 정상 범위 하한이 놓이는 반지름
+const R_OUT = 0.74 * R; // 정상 범위 상한이 놓이는 반지름
 const CX = 160;
 const CY = 124;
 
@@ -43,7 +41,13 @@ function polar(angleDeg: number, r: number): [number, number] {
 
 const clamp = (r: number) => Math.max(R_MIN, Math.min(R_MAX, r));
 
-/** 참고구간 모양별 막대 구간과 값의 반지름 */
+/**
+ * 정상 범위 막대의 구간과 값의 반지름 (2026-09-09 사용자 결정 — 정상 범위 전체를 막대로, 내 값은 점으로).
+ *   양쪽 참고치 (a~b)   막대 R_IN ~ R_OUT          값: 하한→R_IN, 상한→R_OUT 비율
+ *   상한만 (<= X)       막대 R_0 ~ R_OUT           값: 0→R_0, X→R_OUT
+ *   하한만 (>= X)       막대 R_IN ~ R (끝까지)      값: X→R_IN, 1.6X→R_OUT, 그 위는 끝까지
+ * 막대 밖의 점은 벗어난 값이고, 막대에서 멀수록 많이 벗어난 것이다.
+ */
 function place(value: number, low: number | null, high: number | null): { barStart: number; barEnd: number; r: number } | null {
   if (low != null && high != null) {
     const t = (value - low) / (high - low || 1);
@@ -63,22 +67,6 @@ function place(value: number, low: number | null, high: number | null): { barSta
 /** 라벨 옆 단위 — 길면 그림을 뚫고 나가므로 카드에만 적는다 */
 const unitFor = (u: string) => (u.length > 7 ? "" : u);
 
-/** 부채꼴 조각 — 중심 각도 ±half, 반지름 r1~r2. r1 이 0 이면 중심에서 시작하는 쐐기 */
-function sectorPath(angleDeg: number, halfDeg: number, r1: number, r2: number): string {
-  const a1 = angleDeg - halfDeg;
-  const a2 = angleDeg + halfDeg;
-  const [ox1, oy1] = polar(a1, r2);
-  const [ox2, oy2] = polar(a2, r2);
-  const f = (v: number) => v.toFixed(1);
-  if (r1 <= 0.5) {
-    return `M ${CX} ${CY} L ${f(ox1)} ${f(oy1)} A ${f(r2)} ${f(r2)} 0 0 1 ${f(ox2)} ${f(oy2)} Z`;
-  }
-  const [ix1, iy1] = polar(a1, r1);
-  const [ix2, iy2] = polar(a2, r1);
-  return `M ${f(ix1)} ${f(iy1)} L ${f(ox1)} ${f(oy1)} A ${f(r2)} ${f(r2)} 0 0 1 ${f(ox2)} ${f(oy2)} L ${f(ix2)} ${f(iy2)} A ${f(r1)} ${f(r1)} 0 0 0 ${f(ix1)} ${f(iy1)} Z`;
-}
-
-
 /** 라벨 정렬 — 위·아래는 가운데, 오른쪽은 시작, 왼쪽은 끝 */
 function anchorFor(angleDeg: number): "start" | "middle" | "end" {
   const c = Math.cos((angleDeg * Math.PI) / 180);
@@ -96,7 +84,7 @@ export function BloodRadar({
   analytes: Analyte[];
   row: BloodRow | null;
   testedAt?: string;
-  /** 그림만 — 판정 카드·NOTE 는 생략 (벗어난 항목 레이더처럼 아래에 카드가 따로 있는 자리) */
+  /** 그림만 — 판정 카드·NOTE 는 생략 (벗어난 항목 차트처럼 아래에 카드가 따로 있는 자리) */
   compact?: boolean;
 }) {
   const n = analytes.length;
@@ -106,67 +94,81 @@ export function BloodRadar({
   const slots = analytes.map((a, i) => {
     const result = resultOf(row, a.code);
     const gauge = result ? gaugeFor(result, a) : null;
-    const pos = result?.value != null && gauge ? place(result.value, gauge.ref.low, gauge.ref.high) : null;
     const status = result ? statusOf(result, a) : "unknown";
+    const pos = result?.value != null && gauge ? place(result.value, gauge.ref.low, gauge.ref.high) : null;
     const bad = isConcerning(status, a);
     const tone =
       status === "normal" ? "var(--success)" : status === "unknown" ? "var(--text-muted)" : bad ? "var(--danger)" : "var(--warning)";
-    return { a, angle: angles[i], result, gauge, pos, status, bad, tone, short: SHORT[a.code] ?? a.code };
+    const arrow = status === "high" ? "▲" : status === "low" ? "▼" : "";
+    return { a, angle: angles[i], result, gauge, pos, status, bad, tone, arrow, short: SHORT[a.code] ?? a.code };
   });
 
-  const half = 180 / n - GAP_DEG / 2;
   const missing = slots.filter((s) => !s.result);
   const noRef = slots.filter((s) => s.result && !s.gauge);
   const unprinted = slots.filter((s) => s.gauge && !s.gauge.ref.printed);
-  const oneSided = slots.filter((s) => s.gauge && (s.gauge.ref.low == null || s.gauge.ref.high == null));
 
   return (
     <div>
       <svg
-        viewBox="0 0 320 240"
+        viewBox="0 0 320 248"
         style={{ width: "100%", maxWidth: 400, height: "auto", display: "block", margin: "0 auto" }}
         role="img"
-        aria-label="피검사 항목별 참고구간과 내 수치"
+        aria-label="피검사 항목별 정상 범위(막대)와 내 수치(점)"
       >
-        {/* 바탕 원 — 부채꼴이 놓이는 접시. 값이 없는 항목의 조각은 이 회색만 보인다 */}
-        {slots.map((s) => (
-          <path key={`bg-${s.a.code}`} d={sectorPath(s.angle, half, 0, R)} fill="var(--bg-secondary)" stroke="none" />
-        ))}
+        {/* 바깥 테두리 — 크기 감을 잡는 틀 */}
+        <circle cx={CX} cy={CY} r={R} fill="none" stroke="var(--border-subtle)" strokeWidth="1" />
 
-        {/* 참고구간 — 부채꼴 안의 연두색 면. 양쪽이면 고리 조각, 상한만이면 중심부터, 하한만이면 바깥까지 */}
+        {/* 스포크 — 점이 놓이는 선. 값 없는 항목은 점선 */}
         {slots.map((s) => {
-          if (!s.pos) return null;
+          const [x, y] = polar(s.angle, R);
           return (
-            <path
-              key={`ref-${s.a.code}`}
-              d={sectorPath(s.angle, half, s.pos.barStart, s.pos.barEnd)}
-              fill="var(--success-subtle)"
-              stroke="var(--success)"
+            <line
+              key={`ax-${s.a.code}`}
+              x1={CX}
+              y1={CY}
+              x2={x}
+              y2={y}
+              stroke="var(--border)"
               strokeWidth="1"
-              strokeOpacity=".5"
+              strokeDasharray={s.pos == null ? "3 3" : undefined}
+              opacity={s.pos == null ? 0.7 : 1}
             />
           );
         })}
 
-        {/* 부채꼴 중심선 — 점이 놓이는 자리. 옅게 */}
+        {/* 정상 범위 — 스포크 위의 라운드 막대. 그 항목의 정상 구간 전체다 */}
         {slots.map((s) => {
-          const [x, y] = polar(s.angle, R);
-          return <line key={`ax-${s.a.code}`} x1={CX} y1={CY} x2={x} y2={y} stroke="var(--border)" strokeWidth="1" strokeDasharray="2 3" opacity=".8" />;
+          if (!s.pos) return null;
+          const [x1, y1] = polar(s.angle, s.pos.barStart);
+          const [x2, y2] = polar(s.angle, s.pos.barEnd);
+          return (
+            <line
+              key={`bar-${s.a.code}`}
+              x1={x1}
+              y1={y1}
+              x2={x2}
+              y2={y2}
+              stroke="var(--success)"
+              strokeWidth="10"
+              strokeLinecap="round"
+              opacity=".38"
+            />
+          );
         })}
 
-        {/* 내 수치 — 점 하나씩. 잇는 선은 그리지 않는다 */}
+        {/* 내 수치 — 막대 위(정상) 또는 밖(벗어남)의 점 하나 */}
         {slots.map((s) => {
           if (!s.pos) return null;
           const [x, y] = polar(s.angle, s.pos.r);
           return (
             <g key={`pt-${s.a.code}`}>
-              <circle cx={x} cy={y} r="8" fill={s.tone} opacity=".18" />
-              <circle cx={x} cy={y} r="4.5" fill={s.tone} stroke="var(--bg-card)" strokeWidth="1.5" />
+              <circle cx={x} cy={y} r="8.5" fill={s.tone} opacity=".18" />
+              <circle cx={x} cy={y} r="5" fill={s.tone} stroke="var(--bg-card)" strokeWidth="1.6" />
             </g>
           );
         })}
 
-        {/* 라벨 + 값 */}
+        {/* 라벨 + 값 (+ ▲▼) */}
         {slots.map((s) => {
           const [lx, ly] = polar(s.angle, R + 20);
           const anchor = anchorFor(s.angle);
@@ -186,6 +188,12 @@ export function BloodRadar({
                 fill={value == null ? "var(--text-muted)" : s.status === "normal" ? "var(--text-primary)" : s.tone}
               >
                 {value == null ? "—" : value}
+                {s.arrow ? (
+                  <tspan fontSize="8.5" fontWeight="800">
+                    {" "}
+                    {s.arrow}
+                  </tspan>
+                ) : null}
                 {value == null || !unit ? null : (
                   <tspan fontSize="8" fontWeight="500" fill="var(--text-muted)">
                     {" "}
@@ -220,14 +228,11 @@ export function BloodRadar({
       {compact ? null : (
         <div className="note-block" style={{ marginTop: 14 }}>
           <strong>NOTE</strong>
-          부채꼴의 연두색 면이 그 항목의 참고구간이에요. 점이 면 안이면 정상, 면에서 멀수록 많이 벗어난 거예요.
-          {oneSided.length
-            ? " 상한만 있는 항목은 면이 가운데부터 차 있고, 하한만 있는 항목은 바깥까지 차 있어요."
-            : ""}
-          {" "}축마다 단위가 달라 축 사이의 크기 비교는 의미가 없어요.
-          {slots.some((s) => s.a.higherIsBetter) ? " eGFR 처럼 높을수록 좋은 항목은 바깥으로 나가도 걱정할 일이 아니에요." : ""}
+          초록 막대가 그 항목의 정상 범위예요. 점이 막대 위에 있으면 정상, 막대 밖이면 벗어난 것이고 멀수록 많이 벗어난 거예요.
+          상한만 있는 항목은 막대가 가운데 가까이에서 시작하고, 하한만 있는 항목은 바깥까지 이어져요. 높음은 ▲, 낮음은 ▼.
+          {slots.some((s) => s.a.higherIsBetter) ? " eGFR 처럼 높을수록 좋은 항목은 ▲ 여도 걱정할 일이 아니에요(주의색)." : ""}
           {testedAt ? ` 기준 검사: ${testedAt}.` : ""}
-          {missing.length ? ` 이번 검사에는 ${missing.map((s) => s.short).join("·")}이 없어 그 축은 비워 두었어요.` : ""}
+          {missing.length ? ` 이번 검사에는 ${missing.map((s) => s.short).join("·")}이 없어 그 방향은 비워 두었어요.` : ""}
           {noRef.length ? ` ${noRef.map((s) => s.short).join("·")}은 참고치가 없어 값만 적었어요.` : ""}
           {unprinted.length ? " 결과지에 참고치가 없는 항목은 일반적인 기준으로 표시했어요." : ""}
         </div>
