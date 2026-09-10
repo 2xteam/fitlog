@@ -4,11 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Sheet } from "@/components/Sheet";
+import { BodyRadar, RADAR_SLOTS } from "@/components/BodyRadar";
+import { useProfile } from "@/lib/useProfile";
 import { NoteEditor } from "@/components/RecordNote";
 import { loadSession, type SessionUser } from "@/lib/session";
 import {
   FIELDS,
   SEGMENT_LABELS,
+  buildRadarAxes,
   groupFields,
   pick,
   type FieldDef,
@@ -25,6 +28,8 @@ export default function MeasurementDetailPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const [session, setSession] = useState<SessionUser | null>(null);
+  /* 핵심 3종 레이더의 범위 계산에 키·성별이 필요하다 — 목록 화면과 같다 */
+  const { profile } = useProfile(session?.id);
   const [row, setRow] = useState<Row | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -88,6 +93,9 @@ export default function MeasurementDetailPage() {
   const shown = FIELDS.filter((f) => pick(row, f.path) != null);
   /** 결과지의 분석 구획대로 묶어 보여준다 */
   const groups = groupFields(shown);
+  /* 목록 화면(/measurements)의 레이더와 같은 그림을 이 결과지 한 장으로 그린다 (2026-09-10 사용자 요청) */
+  const radarAxes = buildRadarAxes(row, { heightCm: profile?.heightCm ?? null, gender: profile?.gender ?? null });
+  const radarValues = Object.fromEntries(RADAR_SLOTS.map((sl) => [sl.path, (pick(row, sl.path) as number | null) ?? null]));
 
   return (
     <div>
@@ -100,6 +108,12 @@ export default function MeasurementDetailPage() {
           "측정 기록"
         }
       />
+
+      <Sheet eyebrow="MAIN" headline="핵심 3종" lead="체중 · 골격근량 · 체지방률을 적정 범위와 겹쳐 봐요. 이 결과지 한 장 기준이에요.">
+        <div style={{ marginTop: 18 }}>
+          <BodyRadar axes={radarAxes} values={radarValues} measuredAt={dateText} />
+        </div>
+      </Sheet>
 
       {groups.map((g) => (
         <Sheet key={g.key} eyebrow="VALUES" headline={g.label}>

@@ -5,10 +5,11 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Sheet } from "@/components/Sheet";
 import { BloodGauge } from "@/components/BloodGauge";
+import { BloodRadar } from "@/components/BloodRadar";
 import { showToast } from "@/components/Toast";
 import { loadSession } from "@/lib/session";
 import { NoteEditor } from "@/components/RecordNote";
-import { groupByPanel } from "@/lib/bloodCatalog";
+import { groupByPanel, PRIMARY_ANALYTES } from "@/lib/bloodCatalog";
 import { type BloodRow } from "@/lib/blood";
 
 /**
@@ -110,6 +111,17 @@ export default function BloodDetailPage() {
               원본 보기
             </a>
           ) : null}
+        </div>
+      </Sheet>
+
+      {/* 목록 화면(/blood)의 핵심 축 차트와 같은 그림 — 이 결과지 한 장 기준 (2026-09-10 사용자 요청) */}
+      <Sheet
+        eyebrow="MAIN"
+        headline={`핵심 ${PRIMARY_ANALYTES.length}축`}
+        lead="간 · 지질 · 혈당 · 신장 네 갈래를 대표하는 항목이에요. 이 검사 결과를 참고구간과 겹쳐 봐요."
+      >
+        <div style={{ marginTop: 18 }}>
+          <BloodRadar analytes={PRIMARY_ANALYTES} row={row} testedAt={dateText} />
         </div>
       </Sheet>
 
