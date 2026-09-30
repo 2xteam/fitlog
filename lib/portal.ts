@@ -1,9 +1,8 @@
 /**
  * 통합 로그인 포털로 보내는 규칙.
  *
- * 운영 도메인(`*.myjane.co.kr`)에서만 포털로 넘긴다. 로컬 개발이나
- * `*.vercel.app` 미리보기에서는 쿠키 도메인이 적용되지 않아 포털에 저장한 세션이
- * 돌아와도 읽히지 않으므로, 이 앱의 `/login` 화면을 그대로 쓴다.
+ * 로그인은 **언제나 포털**이다. 운영은 www.myjane.co.kr, localhost 에서는
+ * 로컬 포털(:3000)로 보낸다 → 아래 `portalOrigin()`.
  *
  * → my-obsidian-vault / 30-Patterns/인증과 세션 공유.md
  */
@@ -12,6 +11,28 @@ export const APP_KEY = "fitlog";
 
 const PORTAL_ORIGIN =
   process.env.NEXT_PUBLIC_PORTAL_ORIGIN?.replace(/\/+$/, "") ?? "https://www.myjane.co.kr";
+
+/**
+ * 포털 주소. **localhost 에서 열면 로컬 포털(:3000)이다.**
+ *
+ * 로그인·토큰 서명은 포털만 한다 — 앱이 서명할 수 있으면 신뢰의 의미가 없다.
+ * 쿠키는 포트를 가리지 않으므로 localhost:3000 포털이 심은 세션을 이 앱(다른 포트)이
+ * 그대로 읽는다. 포털도 localhost 에서는 로그인 뒤 이 앱의 로컬 포트로 돌려보낸다
+ * (myjane/lib/apps.ts 의 originFor). 그래서 로컬 테스트는 **포털을 함께 띄운다**.
+ * 운영(`*.myjane.co.kr`)에서는 이 분기를 타지 않는다.
+ * → my-obsidian-vault / 30-Patterns/인증과 세션 공유.md
+ */
+const LOCAL_PORTAL_PORT = 3000;
+
+function portalOrigin(): string {
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host === "localhost" || host === "127.0.0.1" || host.endsWith(".localhost")) {
+      return `${window.location.protocol}//${host}:${LOCAL_PORTAL_PORT}`;
+    }
+  }
+  return PORTAL_ORIGIN;
+}
 
 /** 지금 이 브라우저가 포털과 세션을 나눠 쓸 수 있는 곳에 있는가 */
 export function usesPortal(): boolean {
@@ -33,12 +54,11 @@ export type AuthUrlOptions = {
   relogin?: boolean;
 };
 
-/** 로그인하러 갈 주소 */
+/** 로그인하러 갈 주소 — **언제나 포털이다.** localhost 에서는 로컬 포털 */
 export function loginUrl(next = "/home", options: AuthUrlOptions = {}): string {
   const path = safePath(next);
   const relogin = options.relogin ? "&relogin=1" : "";
-  if (!usesPortal()) return `/login?next=${encodeURIComponent(path)}${relogin}`;
-  return `${PORTAL_ORIGIN}/login?from=${APP_KEY}&next=${encodeURIComponent(path)}${relogin}`;
+  return `${portalOrigin()}/login?from=${APP_KEY}&next=${encodeURIComponent(path)}${relogin}`;
 }
 
 /**
@@ -56,7 +76,7 @@ export function loginUrl(next = "/home", options: AuthUrlOptions = {}): string {
  */
 export function signupUrl(next = "/home"): string {
   const path = safePath(next);
-  return `${PORTAL_ORIGIN}/signup?from=${APP_KEY}&next=${encodeURIComponent(path)}`;
+  return `${portalOrigin()}/signup?from=${APP_KEY}&next=${encodeURIComponent(path)}`;
 }
 
 /**
@@ -68,11 +88,11 @@ export function signupUrl(next = "/home"): string {
  * → my-obsidian-vault / 50-Plans/C 법적 페이지.md
  */
 export function findPhoneUrl(): string {
-  return `${PORTAL_ORIGIN}/find-phone`;
+  return `${portalOrigin()}/find-phone`;
 }
 
 export function forgotPinUrl(): string {
-  return `${PORTAL_ORIGIN}/forgot-pin`;
+  return `${portalOrigin()}/forgot-pin`;
 }
 
 /**
@@ -93,7 +113,7 @@ export function consentUrl(
 ): string {
   const back = `${typeof location !== "undefined" ? location.origin : ""}${safePath(backTo)}`;
   const chain = then.length ? `&then=${encodeURIComponent(then.join(","))}` : "";
-  return `${PORTAL_ORIGIN}/account/consent/${kind}?next=${encodeURIComponent(back)}${chain}`;
+  return `${portalOrigin()}/account/consent/${kind}?next=${encodeURIComponent(back)}${chain}`;
 }
 
 /**
@@ -105,7 +125,7 @@ export function consentUrl(
  * → my-obsidian-vault / 50-Plans/C 법적 페이지.md
  */
 export function withdrawUrl(): string {
-  return `${PORTAL_ORIGIN}/account/withdraw`;
+  return `${portalOrigin()}/account/withdraw`;
 }
 
 /**
@@ -116,5 +136,5 @@ export function withdrawUrl(): string {
  * → components/EmailBanner.tsx
  */
 export function accountEmailUrl(): string {
-  return `${PORTAL_ORIGIN}/account/email`;
+  return `${portalOrigin()}/account/email`;
 }

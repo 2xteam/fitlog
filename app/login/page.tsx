@@ -1,197 +1,40 @@
 "use client";
 
-import type { CSSProperties } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useState } from "react";
-import { AppIcon } from "@/components/AppIcon";
-import { loadSession, saveSession, type SessionUser } from "@/lib/session";
-import { loginUrl, signupUrl, findPhoneUrl, forgotPinUrl, usesPortal } from "@/lib/portal";
+import { Suspense, useEffect } from "react";
+import { loadSession } from "@/lib/session";
+import { loginUrl } from "@/lib/portal";
 
-function LoginForm() {
+/**
+ * 로그인은 **포털에서만** 한다. 이 경로는 옛 링크를 위해 남겨 둔 이동 화면이다.
+ *
+ * 예전에는 로컬 개발용 전화번호+PIN 로그인 화면이 여기 있었다. 그 라우트는
+ * 세션 쿠키(`snap_session` · `snap_auth`)를 심지 않아서 localhost 에서 로그인해도
+ * 곧바로 다시 로그인 화면으로 튕겼고, 전화번호 로그인은 2026-09-10 에 끝났다.
+ * 로컬에서는 localhost:3000 포털(이메일 로그인)로 간다 → lib/portal.ts
+ */
+function LoginRedirect() {
   const params = useSearchParams();
-  const next = params.get("next") ?? "/home";
+  const raw = params.get("next") ?? "/home";
+  const next = raw.startsWith("/") && !raw.startsWith("//") ? raw : "/home";
   /** 세션이 있어도 로그인 화면을 보여 달라는 표시 → lib/portal.ts */
   const relogin = params.get("relogin") === "1";
-  const [phone, setPhone] = useState("");
-  const [pin, setPin] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (!relogin && loadSession()) {
       window.location.replace(next);
       return;
     }
-    // 운영 도메인에서는 통합 로그인(www.myjane.co.kr)이 맡는다.
-    // 로컬 개발에서는 쿠키 도메인이 적용되지 않으므로 이 화면을 그대로 쓴다.
-    if (usesPortal()) window.location.replace(loginUrl(next, { relogin }));
+    window.location.replace(loginUrl(next, { relogin }));
   }, [next, relogin]);
 
-  const login = useCallback(async () => {
-    setBusy(true);
-    setMsg(null);
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ phone, pin }),
-      });
-      const json = (await res.json()) as {
-        ok: boolean;
-        user?: SessionUser;
-        /** 앱 서버가 검증하는 서명 토큰. 없으면 API 가 전부 401 이다 → lib/auth.ts */
-        token?: string;
-        error?: string;
-      };
-      if (!res.ok || !json.ok || !json.user) {
-        setMsg(json.error ?? "로그인에 실패했습니다.");
-        return;
-      }
-      saveSession(json.user, json.token);
-      window.location.replace(next);
-    } catch {
-      setMsg("네트워크 오류입니다.");
-    } finally {
-      setBusy(false);
-    }
-  }, [phone, pin, next]);
-
-  return (
-    <main
-      style={{
-        minHeight: "100vh",
-        display: "grid",
-        placeItems: "center",
-        padding: "1.5rem",
-        background: "var(--bg-primary)",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 400,
-          background: "var(--bg-card)",
-          borderRadius: "var(--radius-xl)",
-          padding: "2rem",
-          boxShadow: "0 25px 50px -12px rgba(0,0,0,0.4)",
-        }}
-      >
-        <h1
-          style={{
-            margin: "0 0 0.25rem",
-            fontSize: "1.75rem",
-            color: "var(--text-primary)",
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem",
-          }}
-        >
-          <AppIcon size={36} priority className="app-brand-icon" />
-          <span style={{ fontWeight: 900, letterSpacing: "-0.02em", color: "var(--accent)" }}>FitLog</span>
-        </h1>
-        <p style={{ margin: "0 0 1.5rem", color: "var(--text-secondary)", fontSize: 14 }}>
-          전화번호와 PIN으로 로그인하세요.
-        </p>
-        <label style={lab}>
-          전화번호
-          <input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="01012345678"
-            style={inp}
-          />
-        </label>
-        <label style={{ ...lab, marginBottom: "1.25rem" }}>
-          PIN
-          <input
-            type="password"
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-            placeholder="4자 이상"
-            style={inp}
-          />
-        </label>
-        <button
-          type="button"
-          onClick={login}
-          disabled={busy}
-          style={{
-            width: "100%",
-            padding: "0.85rem",
-            borderRadius: "var(--radius-md)",
-            border: "none",
-            background: busy ? "var(--text-muted)" : "var(--accent)",
-            color: "var(--on-accent)",
-            fontWeight: 700,
-            cursor: busy ? "default" : "pointer",
-            marginBottom: "0.75rem",
-            fontSize: 15,
-          }}
-        >
-          {busy ? "확인 중…" : "로그인"}
-        </button>
-        <div style={{ display: "flex", justifyContent: "center", gap: "1.5rem", flexWrap: "wrap" }}>
-          <a
-            href={signupUrl(next)}
-            style={{
-              color: "var(--accent)",
-              fontSize: 14,
-              textDecoration: "none",
-            }}
-          >
-            회원가입
-          </a>
-          <a
-            href={findPhoneUrl()}
-            style={{
-              color: "var(--text-secondary)",
-              fontSize: 14,
-              textDecoration: "none",
-            }}
-          >
-            전화번호 찾기
-          </a>
-          <a
-            href={forgotPinUrl()}
-            style={{
-              color: "var(--text-secondary)",
-              fontSize: 14,
-              textDecoration: "none",
-            }}
-          >
-            PIN 찾기
-          </a>
-        </div>
-        {msg ? (
-          <p style={{ margin: "1rem 0 0", color: "var(--danger)", fontSize: 13 }}>{msg}</p>
-        ) : null}
-      </div>
-    </main>
-  );
+  return null;
 }
-
-const lab: CSSProperties = {
-  display: "grid",
-  gap: 6,
-  marginBottom: "1rem",
-  fontSize: 13,
-  color: "var(--text-secondary)",
-};
-
-const inp: CSSProperties = {
-  padding: "0.65rem 0.85rem",
-  borderRadius: "var(--radius-md)",
-  border: "1px solid var(--input-border)",
-  background: "var(--input-bg)",
-  color: "var(--text-primary)",
-  fontSize: 16,
-};
 
 export default function LoginPage() {
   return (
     <Suspense fallback={null}>
-      <LoginForm />
+      <LoginRedirect />
     </Suspense>
   );
 }
