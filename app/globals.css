@@ -835,7 +835,7 @@ a[style*="var(--bg-card)"]:hover {
   border-radius: var(--radius-lg);
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  box-shadow: 0 18px 44px rgba(6, 34, 40, 0.08);
+  box-shadow: 0 18px 44px rgba(40, 20, 70, 0.08);
 }
 
 .sheet + .sheet {
@@ -850,8 +850,8 @@ a[style*="var(--bg-card)"]:hover {
 
 .sheet--dark {
   background:
-    radial-gradient(circle at 78% 16%, rgba(95, 184, 201, 0.14), transparent 36%),
-    linear-gradient(150deg, #04161b, #0e3037 65%, #134450);
+    radial-gradient(circle at 78% 16%, rgba(246, 165, 211, 0.14), transparent 36%),
+    linear-gradient(150deg, #120f1c, #1d1330 65%, #2a1238);
   color: #fff;
   border: none;
 }
@@ -872,7 +872,7 @@ a[style*="var(--bg-card)"]:hover {
 }
 
 .sheet--dark .eyebrow {
-  color: #ead58c;
+  color: #feda75;
 }
 
 .headline {
@@ -900,7 +900,7 @@ a[style*="var(--bg-card)"]:hover {
 }
 
 .sheet--dark .lead {
-  color: rgba(230, 244, 246, 0.72);
+  color: rgba(255, 255, 255, 0.72);
 }
 
 /* 상태 알약 배지 */
@@ -939,8 +939,8 @@ a[style*="var(--bg-card)"]:hover {
 }
 
 .btn--primary {
-  background: linear-gradient(135deg, #14788a, #0d5866);
-  box-shadow: 0 10px 24px rgba(6, 60, 72, 0.18);
+  background: linear-gradient(135deg, #962fbf, #7e24a3);
+  box-shadow: 0 10px 24px rgba(214, 41, 118, 0.18);
   color: #fff;
 }
 
@@ -953,13 +953,13 @@ a[style*="var(--bg-card)"]:hover {
 /* 어두운 시트 위에서는 보조 버튼도 밝게 */
 .sheet--dark .btn--ghost {
   background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(150, 205, 216, 0.3);
+  border-color: rgba(255, 255, 255, 0.3);
   color: #fff;
 }
 
 .sheet--dark .pill {
   background: rgba(255, 255, 255, 0.12);
-  color: #ead58c;
+  color: #feda75;
 }
 
 .btn--block {
@@ -1056,7 +1056,7 @@ a[style*="var(--bg-card)"]:hover {
   border-radius: 14px;
   border: 1px solid var(--border);
   background: var(--bg-card);
-  box-shadow: 0 18px 40px rgba(6, 34, 40, 0.18);
+  box-shadow: 0 18px 40px rgba(40, 20, 70, 0.18);
   z-index: 60;
   display: grid;
   gap: 2px;
@@ -1124,20 +1124,20 @@ a[style*="var(--bg-card)"]:hover {
 /*
  * jane 은 myjane 브랜드 색이다.
  *
- * ⚠️ 이 워드마크는 **항상 어두운 푸터 위에** 있다 (배경이 #061a1f 리터럴이라
- * 앱 테마와 무관하다). 그래서 밝은 면용 먹청(#116271)이 아니라 짙은 면용
+ * ⚠️ 이 워드마크는 **항상 어두운 푸터 위에** 있다 (배경이 #120f1c 리터럴이라
+ * 앱 테마와 무관하다). 그래서 밝은 면용 먹청(#962fbf)이 아니라 짙은 면용
  * 값을 쓴다 — 밝은 값으로는 2.56:1 이다.
  *
  * 원래 규칙이 둘로 나뉘어 있었고 밝은 값이 뒤에서 이기고 있었다.
  * 보라 시절에도 3.32:1 로 미달이었다. 한 줄로 합친다.
  */
 .myjane-mark > span {
-  color: #5fb8c9;
+  color: #f6a5d3;
 }
 
 /* custom 테마는 배경을 미리 알 수 없어 양쪽에서 읽히는 중간 톤을 쓴다 */
 [data-theme="custom"] .myjane-mark > span {
-  color: #1a7f8f;
+  color: #b13ad8;
 }
 
 /* ── 소개 페이지 레이아웃 ──

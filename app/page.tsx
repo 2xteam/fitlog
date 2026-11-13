@@ -41,7 +41,7 @@ export default function LandingPage() {
               <>
                 결과지를 찍으면,
                 <br />
-                <span style={{ color: "#ead58c" }}>추이가 남습니다.</span>
+                <span style={{ color: "#feda75" }}>추이가 남습니다.</span>
               </>
             }
             lead="인바디와 피검사 결과지를 찍으면 인쇄된 항목을 모두 읽어 날짜별로 쌓아 둡니다. 종이를 버려도 기록은 남습니다."

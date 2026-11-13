@@ -36,7 +36,7 @@ const themeInitScript = `
 
     if (stored.id === 'custom' && stored.custom) {
       var bg = stored.custom.bg || '#000000';
-      var accent = stored.custom.accent || '#116271';
+      var accent = stored.custom.accent || '#962fbf';
 
       function hexToRgb(hex) {
         var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex.trim());
@@ -74,7 +74,7 @@ const themeInitScript = `
         '--accent-subtle': 'rgba('+ar+','+ag+','+ab+',0.14)',
         '--danger':        '#ff4e6a',
         '--danger-subtle': 'rgba(255,78,106,0.12)',
-        '--success':       '#116271',
+        '--success':       '#962fbf',
         '--success-subtle':'rgba(46,232,174,0.12)',
         '--warning':       '#ffc233',
         '--input-bg':      mix(bgRgb,0.35),

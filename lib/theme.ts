@@ -1,7 +1,7 @@
 export type ThemeId = "light" | "dark" | "custom";
 
 export type ThemeCustomColor = {
-  /** 커스텀 모드 전용 accent 색상 (hex, 기본 #116271) */
+  /** 커스텀 모드 전용 accent 색상 (hex, 기본 #962fbf) */
   accent: string;
   /** 커스텀 모드 전용 배경 색상 (hex, 기본 #000000) */
   bg: string;
@@ -22,19 +22,19 @@ export const PRESET_THEMES: ThemeConfig[] = [
     id: "dark",
     label: "다크",
     dataAttr: "dark",
-    preview: { bg: "#04161b", accent: "#5fb8c9", text: "#eef7f8" },
+    preview: { bg: "#120f1c", accent: "#f6a5d3", text: "#f6f2fb" },
   },
   {
     id: "light",
     label: "라이트",
     dataAttr: "light",
-    preview: { bg: "#f7fbfb", accent: "#116271", text: "#0f2027" },
+    preview: { bg: "#f6f3fb", accent: "#962fbf", text: "#1c1c1e" },
   },
   {
     id: "custom",
     label: "커스텀",
     dataAttr: "custom",
-    preview: { bg: "#04161b", accent: "#5fb8c9", text: "#eef7f8" },
+    preview: { bg: "#120f1c", accent: "#f6a5d3", text: "#f6f2fb" },
   },
 ];
 
@@ -114,7 +114,7 @@ export function buildCustomVars(custom: ThemeCustomColor): Record<string, string
     "--accent-subtle": `rgba(${ar},${ag},${ab},0.14)`,
     "--danger": "#ff4e6a",
     "--danger-subtle": "rgba(255,78,106,0.12)",
-    "--success": "#116271",
+    "--success": "#962fbf",
     "--success-subtle": "rgba(46,232,174,0.12)",
     "--warning": "#ffc233",
     "--input-bg": mix(bgRgb, 0.35),

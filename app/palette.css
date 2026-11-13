@@ -4,34 +4,34 @@
  * 원본은 myjane/design/palette.json 하나다. 색을 바꾸려면 거기를 고치고
  * myjane 에서 `npm run palette -- --write` 를 돌린다. 여섯 앱이 함께 갱신된다.
  *
- * 팔레트: 먹청 (Petrol)
+ * 팔레트: 인스타 그라디언트 (TypeLog 계열, 2026-11-14)
  * 근거: my-obsidian-vault → 20-Design/먹청 톤 팔레트.md
  */
 
 /* 라이트 — 기본 테마 */
 :root,
 [data-theme="light"] {
-  --bg-primary: #f7fbfb;
-  --bg-secondary: #e8f2f3;
+  --bg-primary: #f6f3fb;
+  --bg-secondary: #efe9f7;
   --bg-card: #ffffff;
   --bg-elevated: #ffffff;
-  --border: rgba(17, 98, 113, 0.14);
-  --border-subtle: rgba(17, 98, 113, 0.08);
-  --border-strong: rgba(17, 98, 113, 0.42);
-  --text-primary: #0f2027;
-  --text-secondary: #566b70;
-  --text-muted: #5e7377;
-  --accent: #116271;
-  --accent-hover: #0d5866;
-  --accent-subtle: rgba(17, 98, 113, 0.08);
-  --accent-ink: #116271;
-  --gold-soft: rgba(201, 168, 76, 0.12);
-  --point: #c9a84c;
-  --point-subtle: rgba(201, 168, 76, 0.12);
-  --point-ink: #725c1a;
-  --progress-from: #116271;
-  --progress-to: #a8842f;
-  --gold: #c9a84c;
+  --border: rgba(150, 47, 191, 0.16);
+  --border-subtle: rgba(150, 47, 191, 0.08);
+  --border-strong: rgba(150, 47, 191, 0.42);
+  --text-primary: #1c1c1e;
+  --text-secondary: #5c5866;
+  --text-muted: #5f5b69;
+  --accent: #962fbf;
+  --accent-hover: #7e24a3;
+  --accent-subtle: rgba(150, 47, 191, 0.08);
+  --accent-ink: #7a2399;
+  --gold-soft: rgba(250, 126, 30, 0.14);
+  --point: #fa7e1e;
+  --point-subtle: rgba(250, 126, 30, 0.12);
+  --point-ink: #a4470b;
+  --progress-from: #962fbf;
+  --progress-to: #d62976;
+  --gold: #fa7e1e;
   --on-accent: #ffffff;
   --danger: #e0455f;
   --danger-ink: #a83447;
@@ -39,44 +39,44 @@
   --success: #2f9e74;
   --success-ink: #2f7d3f;
   --success-subtle: rgba(47, 158, 116, 0.12);
-  --warning: #c9a84c;
+  --warning: #fa7e1e;
   --input-bg: #ffffff;
-  --input-border: rgba(15, 72, 84, 0.14);
+  --input-border: rgba(150, 47, 191, 0.18);
 }
 
 /* 먹청 다크 */
 [data-theme="dark"] {
-  --bg-primary: #04161b;
-  --bg-secondary: #072027;
-  --bg-card: #0b2b36;
-  --bg-elevated: #0f3846;
-  --border: rgba(150, 205, 216, 0.18);
-  --border-subtle: rgba(150, 205, 216, 0.08);
-  --border-strong: rgba(150, 205, 216, 0.42);
-  --text-primary: #eef7f8;
-  --text-secondary: #a3bcc1;
-  --text-muted: #8ba5aa;
-  --accent: #5fb8c9;
-  --accent-hover: #7dcbd9;
-  --accent-subtle: rgba(95, 184, 201, 0.16);
-  --accent-ink: #5fb8c9;
-  --gold-soft: rgba(232, 201, 106, 0.14);
-  --point: #e8c96a;
-  --point-subtle: rgba(232, 201, 106, 0.14);
-  --point-ink: #e8c96a;
-  --progress-from: #5fb8c9;
-  --progress-to: #e8c96a;
-  --gold: #ead58c;
-  --on-accent: #04161b;
+  --bg-primary: #120f1c;
+  --bg-secondary: #171226;
+  --bg-card: #1d1630;
+  --bg-elevated: #251b3b;
+  --border: rgba(246, 165, 211, 0.18);
+  --border-subtle: rgba(246, 165, 211, 0.08);
+  --border-strong: rgba(246, 165, 211, 0.42);
+  --text-primary: #f6f2fb;
+  --text-secondary: #c3b7d3;
+  --text-muted: #ab9fbd;
+  --accent: #f6a5d3;
+  --accent-hover: #f9bfe0;
+  --accent-subtle: rgba(246, 165, 211, 0.16);
+  --accent-ink: #f6a5d3;
+  --gold-soft: rgba(254, 218, 117, 0.14);
+  --point: #feda75;
+  --point-subtle: rgba(254, 218, 117, 0.14);
+  --point-ink: #feda75;
+  --progress-from: #f6a5d3;
+  --progress-to: #feda75;
+  --gold: #feda75;
+  --on-accent: #120f1c;
   --danger: #ff7a90;
   --danger-ink: #ff7a90;
   --danger-subtle: rgba(255, 122, 144, 0.14);
   --success: #7ee0b8;
   --success-ink: #7ee0b8;
   --success-subtle: rgba(126, 224, 184, 0.14);
-  --warning: #ead58c;
+  --warning: #feda75;
   --input-bg: rgba(255, 255, 255, 0.04);
-  --input-border: rgba(150, 205, 216, 0.2);
+  --input-border: rgba(246, 165, 211, 0.2);
 }
 
 :root {
@@ -87,18 +87,18 @@
    * ⚠️ 이 값들을 리터럴로 다시 쓰지 말 것. 지난 두 번의 색 교체에서 가장
    * 손이 많이 간 자리가 정확히 여기였다.
    */
-  --sheet-dark: linear-gradient(150deg, #071c22, #0e3037 65%, #134450);
-  --sheet-dark-glow: rgba(95, 184, 201, 0.16);
-  --footer-bg: #061a1f;
-  --btn-gradient: linear-gradient(135deg, #14788a, #0d5866);
-  --btn-shadow: rgba(6, 60, 72, 0.22);
+  --sheet-dark: linear-gradient(150deg, #120f1c, #1d1330 65%, #2a1238);
+  --sheet-dark-glow: rgba(214, 41, 118, 0.2);
+  --footer-bg: #120f1c;
+  --btn-gradient: linear-gradient(135deg, #962fbf, #d62976);
+  --btn-shadow: rgba(214, 41, 118, 0.28);
   /* 짙은 면 위에 얹는 색 — 밝은 면용 토큰을 쓰면 2~3:1 로 떨어진다 */
-  --on-dark: #eef7f8;
-  --on-dark-dim: rgba(230, 244, 246, 0.74);
-  --on-dark-faint: rgba(230, 244, 246, 0.68);
-  --border-on-dark: rgba(150, 205, 216, 0.3);
-  --accent-on-dark: #5fb8c9;
-  --gold-on-dark: #ead58c;
+  --on-dark: #ffffff;
+  --on-dark-dim: rgba(255, 255, 255, 0.74);
+  --on-dark-faint: rgba(255, 255, 255, 0.64);
+  --border-on-dark: rgba(255, 255, 255, 0.16);
+  --accent-on-dark: #f6a5d3;
+  --gold-on-dark: #feda75;
   /* 그림자 — rgba() 안에 넣어 쓴다: rgba(var(--shadow-rgb), 0.1) */
-  --shadow-rgb: 6, 34, 40;
+  --shadow-rgb: 40, 20, 70;
 }
