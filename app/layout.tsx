@@ -10,8 +10,8 @@ export const metadata: Metadata = {
   title: "FitLog",
   description: "인바디와 피검사 결과지를 사진으로 기록하고, 체성분 추이와 수치별 권장사항을 함께 보는 FitLog",
   icons: {
-    icon: "/favicon.png",
-    apple: "/icon.png",
+    icon: "/favicon-v2.png",
+    apple: "/icon-v2.png",
   },
   manifest: "/manifest.webmanifest",
   other: {
